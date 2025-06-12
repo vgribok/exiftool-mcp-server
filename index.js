@@ -15,12 +15,27 @@ async function handleRequest(line) {
     const request = JSON.parse(line);
     const { id, params } = request;
 
-    if (!params || !params.filePath) {
-      throw new Error('Missing "filePath" parameter');
+    if (!params || !Array.isArray(params.args)) {
+      throw new Error('Missing or invalid "args" parameter: must be an array of strings');
     }
 
-    // Execute exiftool
-    const { stdout } = await execa('exiftool', [params.filePath]);
+    // Validate that all elements in args are strings
+    if (!params.args.every(arg => typeof arg === 'string')) {
+      throw new Error('"args" parameter must be an array of strings');
+    }
+
+    // Additional validation to prevent shell metacharacters that could be used for command injection
+    const forbiddenChars = [';', '&', '|', '`', '$', '>', '<', '\\'];
+    for (const arg of params.args) {
+      for (const char of forbiddenChars) {
+        if (arg.includes(char)) {
+          throw new Error(`Invalid character "${char}" detected in argument: ${arg}`);
+        }
+      }
+    }
+
+    // Execute exiftool with provided args array safely
+    const { stdout } = await execa('exiftool', params.args);
 
     // Return success response
     const response = {
