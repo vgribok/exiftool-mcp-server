@@ -1,6 +1,8 @@
 # exiftool-mcp-server
 
-An MCP Server for retrieving EXIF data from images (photos) and videos using ExifTool.
+This is an MCP Server (an MCP protocol compatible AI anent) for retrieving EXIF data from images (photos) and videos, using [ExifTool](https://exiftool.org/).
+
+> Note: the `exiftool` copyright belongs to its author, and not to the creators of this AI agent.
 
 ## Description
 
@@ -18,6 +20,20 @@ cd exiftool-mcp-server
 npm install
 ```
 
+### Enabling the exiftool MCP Agent for Claude Desktop
+
+To enable this exiftool MCP server as an agent in Claude Desktop, you need to update your `claude_desktop_config.json` configuration file. Add the following entry to the `"agents"` array in the config file:
+
+```json
+{
+  "name": "exiftool-mcp",
+  "command": "npx exiftool-mcp",
+  "description": "MCP server for retrieving EXIF metadata from images and videos using ExifTool"
+}
+```
+
+This configuration tells Claude Desktop to run the exiftool MCP server as an agent. After updating the config file, save your changes and restart Claude Desktop to apply the new agent configuration.
+
 ## Usage
 
 Run the MCP server CLI command:
@@ -25,19 +41,32 @@ Run the MCP server CLI command:
 ```bash
 npx exiftool-mcp
 ```
+Supported MCP Tools:
+
+- **all_or_some**: Return all or some EXIF properties. If args are not supplied, return all. The `args` parameter is an optional array of strings representing EXIF property names to return.
+
+- **location**: Return GPS-related EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+
+- **timestamp**: Return timestamp-related EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+
+- **location_and_timestamp**: Return both GPS and timestamp EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+
+- **list-tools**: When no `tool` field is provided in the request, the server responds with a list of all supported MCP tools and their metadata.
 
 The server listens for JSON requests on stdin. Each request should be a JSON object with the following structure:
 
 ```json
 {
-  "id": "unique-request-id",
+  "id": "all-or-some-request",
+  "tool": "all_or_some",
   "params": {
-    "args": ["-json", "path/to/image.jpg"]
+    "args": ["/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
   }
 }
 ```
 
 - `id`: A unique identifier for the request.
+- `tool`: A name of the MCP tool.
 - `params.args`: An array of strings representing the command-line arguments to pass to `exiftool`.
 
 The server validates the `args` array to ensure all elements are strings and do not contain potentially dangerous shell metacharacters to prevent command injection.
