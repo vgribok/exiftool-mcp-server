@@ -1,6 +1,6 @@
 # exiftool-mcp-server
 
-This is an MCP Server (an MCP protocol compatible AI anent) for retrieving EXIF data from images (photos) and videos, using [ExifTool](https://exiftool.org/).
+This is an MCP Server (an MCP protocol compatible AI agent) for retrieving EXIF data from images (photos) and videos, using [ExifTool](https://exiftool.org/).
 
 > Note: the `exiftool` copyright belongs to its author, and not to the creators of this AI agent.
 
