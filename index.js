@@ -35,13 +35,26 @@ async function processRequest(request) {
       }
     }
 
+    // Ensure "-j" switch is present in args for JSON output
+    if (!params.args.includes('-j')) {
+      params.args.unshift('-j');
+    }
+
     // Execute exiftool with provided args array safely
     const { stdout } = await execa('exiftool', params.args);
 
-    // Return success response
+    // Parse JSON output from exiftool
+    let parsedResult;
+    try {
+      parsedResult = JSON.parse(stdout);
+    } catch (parseError) {
+      throw new Error('Failed to parse exiftool JSON output: ' + parseError.message);
+    }
+
+    // Return success response with parsed JSON result
     const response = {
       id,
-      result: stdout,
+      result: parsedResult,
     };
     console.log(JSON.stringify(response));
   } catch (err) {
