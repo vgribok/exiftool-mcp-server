@@ -166,6 +166,51 @@ async function handleLocationAndTimestamp(params) {
   return await runExiftool(args);
 }
 
+function parseDMS(dmsString) {
+  // Example input: "37 deg 48' 30.12\" N"
+  if (typeof dmsString !== 'string') return null;
+
+  const dmsRegex = /(\d+)\s*deg\s*(\d+)'?\s*([\d.]+)"?\s*([NSEW])/i;
+  const match = dmsString.match(dmsRegex);
+  if (!match) return null;
+
+  const degrees = parseFloat(match[1]);
+  const minutes = parseFloat(match[2]);
+  const seconds = parseFloat(match[3]);
+  const direction = match[4].toUpperCase();
+
+  let decimal = degrees + minutes / 60 + seconds / 3600;
+  if (direction === 'S' || direction === 'W') {
+    decimal = -decimal;
+  }
+  return decimal;
+}
+
+// Convert GPS coordinates in exifTool output to Google Maps compatible decimal degrees
+function convertGpsCoordinates(exifDataArray) {
+  if (!Array.isArray(exifDataArray)) return exifDataArray;
+
+  return exifDataArray.map((item) => {
+    const newItem = { ...item };
+
+    if (newItem.GPSLatitude) {
+      const latDecimal = parseDMS(newItem.GPSLatitude);
+      if (latDecimal !== null) {
+        newItem.GPSLatitudeGoogleMapsCompatible = latDecimal;
+      }
+    }
+
+    if (newItem.GPSLongitude) {
+      const lonDecimal = parseDMS(newItem.GPSLongitude);
+      if (lonDecimal !== null) {
+        newItem.GPSLongitudeGoogleMapsCompatible = lonDecimal;
+      }
+    }
+
+    return newItem;
+  });
+}
+
 // Main request processor
 async function processRequest(request) {
   try {
@@ -212,6 +257,9 @@ async function processRequest(request) {
       default:
         throw new Error(`Unhandled tool: ${tool}`);
     }
+
+    // Convert GPS coordinates to Google Maps compatible decimal degrees
+    result = convertGpsCoordinates(result);
 
     const response = {
       id,
