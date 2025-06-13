@@ -87,3 +87,24 @@ This project is licensed under the ISC License. See the [LICENSE](LICENSE) file 
 
 Vlad Hrybok
 
+## Debugging with "Debug MCP Server Dev Mode"
+
+To debug the MCP server using the "Debug MCP Server Dev Mode" configuration in VSCode, follow these steps:
+
+2. **Set breakpoints** in your `index.js` or other source files where you want to pause execution and inspect variables.
+
+3. **Open the Debug panel** by clicking the Debug icon on the left sidebar or pressing `Cmd+Shift+D` (macOS) / `Ctrl+Shift+D` (Windows/Linux).
+
+4. **Select the "Debug MCP Server Dev Mode" configuration** from the dropdown at the top of the Debug panel.
+
+5. **Start debugging** by pressing the green play button or hitting `F5`. This will launch your MCP server with the Node.js inspector enabled and pause at the first line (`--inspect-brk`).
+
+6. **Use the integrated terminal** in VSCode to interact with your MCP server as needed (e.g., send JSON input to stdin).
+
+7. **When your code hits a breakpoint**, VSCode will pause execution, allowing you to inspect variables, step through code, and evaluate expressions.
+
+8. **Edit your source files** as needed. To apply changes, you will need to stop and restart the debugger since this configuration does not automatically restart on file changes.
+
+9. **Stop debugging** by clicking the red stop button or pressing `Shift+F5` when finished.
+
+This configuration provides a straightforward way to debug your MCP server with full breakpoint and step-through support.

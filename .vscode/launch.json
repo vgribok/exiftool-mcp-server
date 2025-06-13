@@ -30,6 +30,16 @@
         "NODE_OPTIONS": "--experimental-specifier-resolution=node"
       },
       "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug MCP Server Dev Mode",
+      "runtimeExecutable": "node",
+      "args": ["--inspect-brk", "${workspaceFolder}/index.js"],
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "internalConsoleOptions": "neverOpen"
     }
   ],
   "compounds": [
@@ -38,6 +48,13 @@
       "configurations": [
         "Debug MCP Server",
         "Debug with MCP Inspector"
+      ]
+    },
+    {
+      "name": "Dev Mode with Debugger",
+      "configurations": [
+        "Debug MCP Server",
+        "Debug MCP Server Dev Mode"
       ]
     }
   ]
