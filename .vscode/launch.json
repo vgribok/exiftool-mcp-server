@@ -4,8 +4,22 @@
     {
       "type": "pwa-node",
       "request": "launch",
+      "name": "Start MCP Inspector",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "@modelcontextprotocol/inspector"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "DANGEROUSLY_OMIT_AUTH": "true"
+      },
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
       "name": "Debug MCP Server",
-      "program": "${workspaceFolder}/index.js",
+      "program": "${workspaceFolder}/dist/index.js",
       "console": "integratedTerminal",
       "autoAttachChildProcesses": true,
       "env": {
@@ -13,6 +27,12 @@
       },
       "args": [],
       "internalConsoleOptions": "neverOpen"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Start Inspector and MCP Server",
+      "configurations": ["Start MCP Inspector", "Debug MCP Server"]
     }
   ]
 }

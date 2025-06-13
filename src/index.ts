@@ -117,16 +117,17 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
+
 server.tool(
   "all_or_some",
   {
     args: z.array(z.string()).optional(),
   },
-  async (args: { args?: string[] }) => {
-    if (args.args) {
-      validateArgs(args.args);
+  async ({ args }: { args?: string[] }) => {
+    if (args) {
+      validateArgs(args);
     }
-    let runArgs = args.args || [];
+    let runArgs = args || [];
 
     runArgs = runArgs.map((prop, idx) => {
       const cleanProp = prop.startsWith("-") ? prop.slice(1) : prop;
@@ -135,69 +136,198 @@ server.tool(
 
     const result = await runExiftool(runArgs);
     return {
-      content: convertGpsCoordinates(result),
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(convertGpsCoordinates(result)),
+        },
+      ],
     };
   }
 );
+
 
 server.tool(
   "location",
   {
     args: z.array(z.string()).optional(),
   },
-  async (params: { args?: string[] }) => {
-    const args = params.args;
+  async ({ args }: { args?: string[] }) => {
     if (args) {
       validateArgs(args);
     }
-    let runArgs: string[] = [...gpsTags];
+    let runArgs: (typeof gpsTags[number])[] = [...gpsTags];
     if (args && args.length > 0) {
-      runArgs = runArgs.concat(args);
+      runArgs = runArgs.concat(args as (typeof gpsTags[number])[]);
     }
     const result = await runExiftool(runArgs);
     return {
-      content: convertGpsCoordinates(result),
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(convertGpsCoordinates(result)),
+        },
+      ],
     };
   }
 );
+
 
 server.tool(
   "timestamp",
   {
     args: z.array(z.string()).optional(),
   },
-  async (args: { args?: string[] }) => {
-    const inputArgs = args.args;
-    if (inputArgs) {
-      validateArgs(inputArgs);
+  async ({ args }: { args?: string[] }) => {
+    if (args) {
+      validateArgs(args);
     }
-    let runArgs: string[] = [...timeTags];
-    if (inputArgs && inputArgs.length > 0) {
-      runArgs = runArgs.concat(inputArgs);
+    let runArgs: (typeof timeTags[number])[] = [...timeTags];
+    if (args && args.length > 0) {
+      runArgs = runArgs.concat(args as (typeof timeTags[number])[]);
     }
     const result = await runExiftool(runArgs);
     return {
-      content: convertGpsCoordinates(result),
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(convertGpsCoordinates(result)),
+        },
+      ],
     };
   }
 );
+
 
 server.tool(
   "location_and_timestamp",
   {
     args: z.array(z.string()).optional(),
   },
-  async (params: { args?: string[] }, extra?: any) => {
-    if (params.args) {
-      validateArgs(params.args);
+  async ({ args }: { args?: string[] }) => {
+    if (args) {
+      validateArgs(args);
     }
-    let runArgs = [...gpsTags, ...timeTags];
-    if (params.args && params.args.length > 0) {
-      runArgs = runArgs.concat(params.args as (typeof gpsTags[number] | typeof timeTags[number])[]);
+
+    let runArgs: (typeof gpsTags[number] | typeof timeTags[number])[] = [...gpsTags, ...timeTags];
+    if (args && args.length > 0) {
+      runArgs = runArgs.concat(args as (typeof gpsTags[number] | typeof timeTags[number])[]);
     }
     const result = await runExiftool(runArgs);
     return {
-      content: convertGpsCoordinates(result),
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(convertGpsCoordinates(result)),
+        },
+      ],
+    };
+  }
+);
+
+
+server.resource(
+  "all_or_some://{args*}",
+  new ResourceTemplate("all_or_some://{args*}", { list: undefined }),
+  async (uri, params) => {
+    const args = params.args as string[] | undefined;
+    if (args) {
+      validateArgs(args);
+    }
+    let runArgs = args || [];
+
+    runArgs = runArgs.map((prop, idx) => {
+      const cleanProp = prop.startsWith("-") ? prop.slice(1) : prop;
+      return idx < runArgs.length - 1 ? `-${cleanProp}` : prop;
+    });
+
+    const result = await runExiftool(runArgs);
+    return {
+      contents: [
+        {
+          uri: uri.href,
+          type: "text",
+          text: JSON.stringify(convertGpsCoordinates(result)),
+        },
+      ],
+    };
+  }
+);
+
+
+server.resource(
+  "location://{args*}",
+  new ResourceTemplate("location://{args*}", { list: undefined }),
+  async (uri, params) => {
+    const args = params.args as string[] | undefined;
+    if (args) {
+      validateArgs(args);
+    }
+    let runArgs: string[] = [...gpsTags];
+    if (args && args.length > 0) {
+      runArgs = runArgs.concat(args as any[]);
+    }
+    const result = await runExiftool(runArgs);
+    return {
+      contents: [
+        {
+          uri: uri.href,
+          type: "text",
+          text: JSON.stringify(convertGpsCoordinates(result)),
+        },
+      ],
+    };
+  }
+);
+
+
+server.resource(
+  "timestamp://{args*}",
+  new ResourceTemplate("timestamp://{args*}", { list: undefined }),
+  async (uri, params) => {
+    const args = params.args as string[] | undefined;
+    if (args) {
+      validateArgs(args);
+    }
+    let runArgs: string[] = [...timeTags];
+    if (args && args.length > 0) {
+      runArgs = (runArgs as string[]).concat(args as string[]);
+    }
+    const result = await runExiftool(runArgs);
+    return {
+      contents: [
+        {
+          uri: uri.href,
+          type: "text",
+          text: JSON.stringify(convertGpsCoordinates(result)),
+        },
+      ],
+    };
+  }
+);
+
+
+server.resource(
+  "location_and_timestamp://{args*}",
+  new ResourceTemplate("location_and_timestamp://{args*}", { list: undefined }),
+  async (uri, params) => {
+    const args = params.args as string[] | undefined;
+    if (args) {
+      validateArgs(args);
+    }
+    let runArgs = [...gpsTags, ...timeTags];
+    if (args && args.length > 0) {
+      runArgs = runArgs.concat(args as (typeof gpsTags[number] | typeof timeTags[number])[]);
+    }
+    const result = await runExiftool(runArgs);
+    return {
+      contents: [
+        {
+          uri: uri.href,
+          type: "text",
+          text: JSON.stringify(convertGpsCoordinates(result)),
+        },
+      ],
     };
   }
 );
