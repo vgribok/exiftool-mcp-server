@@ -3,6 +3,8 @@
 
 import readline from 'readline';
 import { execa } from 'execa';
+let buffer = '';
+
 // Setup MCP-compliant STDIO interface
 const rl = readline.createInterface({
   input: process.stdin,
@@ -10,9 +12,8 @@ const rl = readline.createInterface({
   terminal: false,
 });
 
-async function handleRequest(line) {
+async function processRequest(request) {
   try {
-    const request = JSON.parse(line);
     const { id, params } = request;
 
     if (!params || !Array.isArray(params.args)) {
@@ -54,4 +55,36 @@ async function handleRequest(line) {
   }
 }
 
-rl.on('line', handleRequest);
+let openBracesCount = 0;
+
+rl.on('line', async (line) => {
+  buffer += line + '\n';
+
+  // Count opening and closing curly braces in the new line
+  for (const char of line) {
+    if (char === '{') {
+      openBracesCount++;
+    } else if (char === '}') {
+      openBracesCount--;
+    }
+  }
+
+  // When openBracesCount returns to zero, we have a complete JSON object
+  if (openBracesCount === 0 && buffer.trim() !== '') {
+    try {
+      const request = JSON.parse(buffer);
+      buffer = '';
+      await processRequest(request);
+    } catch (err) {
+      const error = {
+        id: null,
+        error: {
+          message: err.message,
+        },
+      };
+      console.log(JSON.stringify(error));
+      buffer = '';
+      openBracesCount = 0;
+    }
+  }
+});
