@@ -132,13 +132,13 @@ const timeTags = [
 // Tool handlers
 async function handleAllOrSome(params) {
   let args = params.args || [];
-  if (args.length === 0) {
-    args = ['-j'];
-  } else {
-    // Prefix each property with '-' for all but the last element
-    args = args.map((prop, idx) => idx < args.length - 1 ? `-${prop}` : prop);
-    args.unshift('-j');
-  }
+
+  // Prefix each property with '-' for all but the last element
+  args = args.map((prop, idx) => {
+    const cleanProp = prop.startsWith('-') ? prop.slice(1) : prop;
+    return idx < args.length - 1 ? `-${cleanProp}` : cleanProp;
+  });
+
   return await runExiftool(args);
 }
 
