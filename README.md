@@ -71,18 +71,27 @@ The server listens for JSON requests on stdin. Each request should be a JSON obj
 
 The server validates the `args` array to ensure all elements are strings and do not contain potentially dangerous shell metacharacters to prevent command injection.
 
-Example request to get EXIF data in JSON format for an image:
+The server will respond with a JSON object containing the `id` and the EXIF data in the `result` field.
 
+Response Example:
 ```json
 {
-  "id": "1",
-  "params": {
-    "args": ["-json", "example.jpg"]
-  }
+  "id": "location-request",
+  "result": [
+    {
+      "SourceFile": "/Users/username/Downloads/delme/IMG_4952.HEIC",
+      "GPSLatitude": "37 deg 17' 28.36\" N",
+      "GPSLongitude": "13 deg 34' 54.06\" E",
+      "GPSAltitude": "62.8 m Above Sea Level",
+      "GPSLatitudeRef": "North",
+      "GPSLongitudeRef": "East",
+      "GPSAltitudeRef": "Above Sea Level",
+      "GPSLatitudeGoogleMapsCompatible": 37.29121111111111,
+      "GPSLongitudeGoogleMapsCompatible": 13.581683333333332
+    }
+  ]
 }
 ```
-
-The server will respond with a JSON object containing the `id` and the EXIF data in the `result` field.
 
 ## Features
 
