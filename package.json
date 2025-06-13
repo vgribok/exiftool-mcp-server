@@ -28,6 +28,8 @@
   },
   "homepage": "https://github.com/vgribok/exiftool-mcp-server#readme",
   "dependencies": {
-    "execa": "^9.6.0"
+    "@modelcontextprotocol/sdk": "^1.12.3",
+    "execa": "^9.6.0",
+    "zod": "^3.25.64"
   }
 }

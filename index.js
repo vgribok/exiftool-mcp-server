@@ -1,116 +1,6 @@
-#!/usr/bin/env node
-// index.js
-
-import readline from 'readline';
+import { createServer } from '@modelcontextprotocol/server';
 import { execa } from 'execa';
 
-let buffer = '';
-
-// Define tool metadata for client discovery
-const tools = {
-  all_or_some: {
-    description: 'Return all or some EXIF properties. If args are not supplied, return all.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        args: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Optional list of EXIF property names to return',
-        },
-      },
-      required: [],
-    },
-  },
-  location: {
-    description: 'Return GPS-related EXIF metadata.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        args: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Optional additional args for exiftool',
-        },
-      },
-      required: [],
-    },
-  },
-  timestamp: {
-    description: 'Return timestamp-related EXIF metadata.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        args: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Optional additional args for exiftool',
-        },
-      },
-      required: [],
-    },
-  },
-  location_and_timestamp: {
-    description: 'Return both GPS and timestamp EXIF metadata.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        args: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Optional additional args for exiftool',
-        },
-      },
-      required: [],
-    },
-  },
-};
-
-// Setup MCP-compliant STDIO interface
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  terminal: false,
-});
-
-// Helper function to validate args array
-function validateArgs(args) {
-  if (!Array.isArray(args)) {
-    throw new Error('"args" parameter must be an array of strings');
-  }
-  if (!args.every(arg => typeof arg === 'string')) {
-    throw new Error('"args" parameter must be an array of strings');
-  }
-  const forbiddenChars = [';', '&', '|', '`', '$', '>', '<', '\\'];
-  for (const arg of args) {
-    for (const char of forbiddenChars) {
-      if (arg.includes(char)) {
-        throw new Error(`Invalid character "${char}" detected in argument: ${arg}`);
-      }
-    }
-  }
-}
-
-// Helper function to run exiftool with args and parse JSON output
-async function runExiftool(args) {
-  if (!args.includes('-j') && !args.includes('-json')) {
-    args.unshift('-j');
-  }
-  try {
-    const { stdout } = await execa('exiftool', args);
-    return JSON.parse(stdout);
-  } catch (err) {
-    if (err.code === 'ENOENT' || (err.stderr && /exiftool(?!.*not found)/i.test(err.stderr) && /not found|no such file|command not found/i.test(err.stderr))) {
-      throw new Error('ExifTool executable not found. Please install ExifTool from https://exiftool.org/ and ensure it is in your system PATH.');
-    }
-    if (err.message && err.message.startsWith('Failed to parse exiftool JSON output:')) {
-      throw err;
-    }
-    throw new Error('Failed to run exiftool: ' + err.message);
-  }
-}
-
-// Define reusable tag arrays
 const gpsTags = [
   '-GPSLatitude',
   '-GPSLongitude',
@@ -135,45 +25,42 @@ const timeTags = [
   '-ContentModifyDate',
 ];
 
-// Tool handlers
-async function handleAllOrSome(params) {
-  let args = params.args || [];
-
-  // Prefix each property with '-' for all but the last element
-  args = args.map((prop, idx) => {
-    const cleanProp = prop.startsWith('-') ? prop.slice(1) : prop;
-    return idx < args.length - 1 ? `-${cleanProp}` : cleanProp;
-  });
-
-  return await runExiftool(args);
+function validateArgs(args) {
+  if (!Array.isArray(args)) {
+    throw new Error('"args" parameter must be an array of strings');
+  }
+  if (!args.every(arg => typeof arg === 'string')) {
+    throw new Error('"args" parameter must be an array of strings');
+  }
+  const forbiddenChars = [';', '&', '|', '`', '$', '>', '<', '\\'];
+  for (const arg of args) {
+    for (const char of forbiddenChars) {
+      if (arg.includes(char)) {
+        throw new Error(`Invalid character "${char}" detected in argument: ${arg}`);
+      }
+    }
+  }
 }
 
-async function handleLocation(params) {
-  let args = gpsTags;
-  if (params.args && params.args.length > 0) {
-    args = args.concat(params.args);
+async function runExiftool(args) {
+  if (!args.includes('-j') && !args.includes('-json')) {
+    args.unshift('-j');
   }
-  return await runExiftool(args);
-}
-
-async function handleTimestamp(params) {
-  let args = timeTags;
-  if (params.args && params.args.length > 0) {
-    args = args.concat(params.args);
+  try {
+    const { stdout } = await execa('exiftool', args);
+    return JSON.parse(stdout);
+  } catch (err) {
+    if (err.code === 'ENOENT' || (err.stderr && /exiftool(?!.*not found)/i.test(err.stderr) && /not found|no such file|command not found/i.test(err.stderr))) {
+      throw new Error('ExifTool executable not found. Please install ExifTool from https://exiftool.org/ and ensure it is in your system PATH.');
+    }
+    if (err.message && err.message.startsWith('Failed to parse exiftool JSON output:')) {
+      throw err;
+    }
+    throw new Error('Failed to run exiftool: ' + err.message);
   }
-  return await runExiftool(args);
-}
-
-async function handleLocationAndTimestamp(params) {
-  let args = gpsTags.concat(timeTags);
-  if (params.args && params.args.length > 0) {
-    args = args.concat(params.args);
-  }
-  return await runExiftool(args);
 }
 
 function parseDMS(dmsString) {
-  // Example input: "37 deg 48' 30.12\" N"
   if (typeof dmsString !== 'string') return null;
 
   const dmsRegex = /(\d+)\s*deg\s*(\d+)'?\s*([\d.]+)"?\s*([NSEW])/i;
@@ -192,7 +79,6 @@ function parseDMS(dmsString) {
   return decimal;
 }
 
-// Convert GPS coordinates in exifTool output to Google Maps compatible decimal degrees
 function convertGpsCoordinates(exifDataArray) {
   if (!Array.isArray(exifDataArray)) return exifDataArray;
 
@@ -217,114 +103,118 @@ function convertGpsCoordinates(exifDataArray) {
   });
 }
 
-async function processRequest(request) {
-  try {
-    // Validate JSON-RPC 2.0 request
-    if (request.jsonrpc !== '2.0') {
-      throw { code: -32600, message: 'Invalid JSON-RPC version, expected "2.0"' };
-    }
-    if (typeof request.method !== 'string') {
-      throw { code: -32600, message: 'Missing or invalid "method" field' };
-    }
-    if (!('id' in request)) {
-      throw { code: -32600, message: 'Missing "id" field' };
-    }
-
-    const id = request.id;
-    const method = request.method;
-    const params = request.params || {};
-
-    // If no method specified, return list of tools for client discovery
-    if (method === '') {
-      const response = {
-        jsonrpc: '2.0',
-        id,
-        result: {
-          tools,
+const server = createServer({
+  tools: [
+    {
+      name: 'all_or_some',
+      description: 'Return all or some EXIF properties. If args are not supplied, return all.',
+      parameters: {
+        type: 'object',
+        properties: {
+          args: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional list of EXIF property names to return',
+          },
         },
-      };
-      console.log(JSON.stringify(response));
-      return;
-    }
-
-    if (!tools[method]) {
-      throw { code: -32601, message: `Unknown method: ${method}` };
-    }
-
-    if (params.args) {
-      validateArgs(params.args);
-    }
-
-    let result;
-    switch (method) {
-      case 'all_or_some':
-        result = await handleAllOrSome(params);
-        break;
-      case 'location':
-        result = await handleLocation(params);
-        break;
-      case 'timestamp':
-        result = await handleTimestamp(params);
-        break;
-      case 'location_and_timestamp':
-        result = await handleLocationAndTimestamp(params);
-        break;
-      default:
-        throw { code: -32601, message: `Unhandled method: ${method}` };
-    }
-
-    // Convert GPS coordinates to Google Maps compatible decimal degrees
-    result = convertGpsCoordinates(result);
-
-    const response = {
-      jsonrpc: '2.0',
-      id,
-      result,
-    };
-    console.log(JSON.stringify(response));
-  } catch (err) {
-    const errorResponse = {
-      jsonrpc: '2.0',
-      id: err.id || null,
-      error: {
-        code: err.code || -32000,
-        message: err.message || 'Server error',
+        required: [],
       },
-    };
-    console.log(JSON.stringify(errorResponse));
-  }
-}
+      run: async (params) => {
+        if (params.args) {
+          validateArgs(params.args);
+        }
+        let args = params.args || [];
 
-let openBracesCount = 0;
+        args = args.map((prop, idx) => {
+          const cleanProp = prop.startsWith('-') ? prop.slice(1) : prop;
+          return idx < args.length - 1 ? `-${cleanProp}` : prop;
+        });
 
-rl.on('line', async (line) => {
-  buffer += line + '\n';
-
-  // Count opening and closing curly braces in the new line
-  for (const char of line) {
-    if (char === '{') {
-      openBracesCount++;
-    } else if (char === '}') {
-      openBracesCount--;
-    }
-  }
-
-  // When openBracesCount returns to zero, we have a complete JSON object
-  if (openBracesCount === 0 && buffer.trim() !== '') {
-    try {
-      const request = JSON.parse(buffer);
-      buffer = '';
-      await processRequest(request);
-    } catch (err) {
-      const error = {
-        id: null,
-        error: {
-          message: err.message,
+        const result = await runExiftool(args);
+        return { result: convertGpsCoordinates(result) };
+      },
+    },
+    {
+      name: 'location',
+      description: 'Return GPS-related EXIF metadata.',
+      parameters: {
+        type: 'object',
+        properties: {
+          args: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional additional args for exiftool',
+          },
         },
-      };
-      console.log(JSON.stringify(error));
-      buffer = '';
-      openBracesCount = 0;
-    }
-  }
+        required: [],
+      },
+      run: async (params) => {
+        if (params.args) {
+          validateArgs(params.args);
+        }
+        let args = gpsTags;
+        if (params.args && params.args.length > 0) {
+          args = args.concat(params.args);
+        }
+        const result = await runExiftool(args);
+        return { result: convertGpsCoordinates(result) };
+      },
+    },
+    {
+      name: 'timestamp',
+      description: 'Return timestamp-related EXIF metadata.',
+      parameters: {
+        type: 'object',
+        properties: {
+          args: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional additional args for exiftool',
+          },
+        },
+        required: [],
+      },
+      run: async (params) => {
+        if (params.args) {
+          validateArgs(params.args);
+        }
+        let args = timeTags;
+        if (params.args && params.args.length > 0) {
+          args = args.concat(params.args);
+        }
+        const result = await runExiftool(args);
+        return { result: convertGpsCoordinates(result) };
+      },
+    },
+    {
+      name: 'location_and_timestamp',
+      description: 'Return both GPS and timestamp EXIF metadata.',
+      parameters: {
+        type: 'object',
+        properties: {
+          args: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional additional args for exiftool',
+          },
+        },
+        required: [],
+      },
+      run: async (params) => {
+        if (params.args) {
+          validateArgs(params.args);
+        }
+        let args = gpsTags.concat(timeTags);
+        if (params.args && params.args.length > 0) {
+          args = args.concat(params.args);
+        }
+        const result = await runExiftool(args);
+        return { result: convertGpsCoordinates(result) };
+      },
+    },
+  ],
+});
+
+server.listen(0, () => {
+  console.log('MCP Server started and listening on stdin/stdout');
 });
