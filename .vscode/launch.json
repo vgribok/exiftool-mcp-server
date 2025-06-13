@@ -13,6 +13,32 @@
       },
       "args": [],
       "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "Debug with MCP Inspector",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "@modelcontextprotocol/inspector",
+        "node",
+        "${workspaceFolder}/index.js"
+      ],
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "env": {
+        "NODE_OPTIONS": "--experimental-specifier-resolution=node"
+      },
+      "internalConsoleOptions": "neverOpen"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "MCP Server + Inspector",
+      "configurations": [
+        "Debug MCP Server",
+        "Debug with MCP Inspector"
+      ]
     }
   ]
 }

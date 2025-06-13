@@ -10,9 +10,9 @@
   },
   "type": "module",
   "keywords": [],
-  "author": "",
+  "author": "Vlad Hrybok",
   "license": "ISC",
-  "description": "",
+  "description": "An MCP Server for retrieving EXIF data from images (photos) and videos using ExifTool",
   "dependencies": {
     "execa": "^9.6.0"
   }
