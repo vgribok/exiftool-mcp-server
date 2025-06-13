@@ -99,17 +99,67 @@ To debug the MCP server using the "Debug MCP Server Dev Mode" configuration in V
 
 5. **Start debugging** by pressing the green play button or hitting `F5`.
 
-6. **Use the integrated terminal** in VSCode to interact with your MCP server as needed (e.g., send JSON input to stdin). For example, to extract and evaluate EXIF data from the file named `IMG_4985.HEIC` located in the `~/Downloads/delme` directory using the MCP server, you can send the following JSON request to the server's standard input while debugging:
-    ```json
-    {
-      "id": "example-request-1",
-      "params": {
-        "args": ["-json", "/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
-      }
-    }
-    ```
+6. **Use the integrated terminal** in VSCode to interact with your MCP server as needed (e.g., send JSON input to stdin).
 
-    Replace `/Users/yourusername` with your actual home directory path.
+### Example: Get the list of supported tools
+
+Send the following JSON request (note the absence of the `tool` field) to retrieve the list of tools supported by the MCP server:
+
+```json
+{
+  "id": "list-tools-request",
+  "params": {}
+}
+```
+
+The server will respond with a JSON object containing the `tools` metadata.
+
+
+### Example: Call the "All or some" tool
+
+To request all EXIF properties or a subset, send a JSON request like this:
+
+```json
+{
+  "id": "all-or-some-request",
+  "tool": "all_or_some",
+  "params": {
+    "args": ["/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
+  }
+}
+```
+
+Replace `/Users/yourusername` with your actual home directory path. If you want specific properties, replace the `args` array with the list of EXIF tags you want (without the leading dash).
+
+#### Example: Call the "All or some" tool with specific EXIF tag patterns
+
+To request EXIF properties matching patterns like all tags containing "Date" or "Time", send a JSON request like this:
+
+```json
+{
+  "id": "all-or-some-pattern-request",
+  "tool": "all_or_some",
+  "params": {
+    "args": ["*Date*", "*Time*", "/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
+  }
+}
+```
+
+This will instruct `exiftool` to return all tags with "Date" or "Time" in their names, along with the file specified.
+
+### Example: Call the "Location and Timestamp" tool
+
+To request GPS and timestamp metadata, send a JSON request like this:
+
+```json
+{
+  "id": "location-timestamp-request",
+  "tool": "location_and_timestamp",
+  "params": {
+    "args": ["/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
+  }
+}
+```
 
 7. **When your code hits a breakpoint**, VSCode will pause execution, allowing you to inspect variables, step through code, and evaluate expressions.
 
@@ -118,5 +168,3 @@ To debug the MCP server using the "Debug MCP Server Dev Mode" configuration in V
 9. **Stop debugging** by clicking the red stop button or pressing `Shift+F5` when finished.
 
 This configuration provides a straightforward way to debug your MCP server with full breakpoint and step-through support.
-
----
