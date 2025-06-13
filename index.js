@@ -96,11 +96,17 @@ async function runExiftool(args) {
   if (!args.includes('-j') && !args.includes('-json')) {
     args.unshift('-j');
   }
-  const { stdout } = await execa('exiftool', args);
   try {
+    const { stdout } = await execa('exiftool', args);
     return JSON.parse(stdout);
   } catch (err) {
-    throw new Error('Failed to parse exiftool JSON output: ' + err.message);
+    if (err.code === 'ENOENT' || (err.message && err.message.toLowerCase().includes('exiftool'))) {
+      throw new Error('ExifTool executable not found. Please install ExifTool from https://exiftool.org/ and ensure it is in your system PATH.');
+    }
+    if (err.message && err.message.startsWith('Failed to parse exiftool JSON output:')) {
+      throw err;
+    }
+    throw new Error('Failed to run exiftool: ' + err.message);
   }
 }
 

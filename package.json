@@ -1,18 +1,32 @@
 {
   "name": "exiftool-mcp-server",
   "version": "1.0.0",
+  "description": "An MCP Server for retrieving EXIF data from images (photos) and videos using ExifTool",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "type": "module",
   "bin": {
     "exiftool-mcp": "./index.js"
   },
-  "type": "module",
-  "keywords": [],
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "mcp-server",
+    "exiftool",
+    "exif",
+    "metadata",
+    "image",
+    "video",
+    "exiftool-mcp",
+    "ai-agent"
+  ],
   "author": "Vlad Hrybok",
   "license": "ISC",
-  "description": "An MCP Server for retrieving EXIF data from images (photos) and videos using ExifTool",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vgribok/exiftool-mcp-server.git"
+  },
+  "homepage": "https://github.com/vgribok/exiftool-mcp-server#readme",
   "dependencies": {
     "execa": "^9.6.0"
   }
