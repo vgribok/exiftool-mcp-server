@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "Debug MCP Server",
+      "program": "${workspaceFolder}/index.js",
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "env": {
+        "NODE_OPTIONS": "--experimental-specifier-resolution=node"
+      },
+      "args": [],
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

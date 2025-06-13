@@ -1,8 +1,8 @@
+#!/usr/bin/env node
 // index.js
 
-const readline = require('readline');
-const { execa } = require('execa');
-
+import readline from 'readline';
+import { execa } from 'execa';
 // Setup MCP-compliant STDIO interface
 const rl = readline.createInterface({
   input: process.stdin,
