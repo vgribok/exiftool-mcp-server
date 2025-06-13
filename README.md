@@ -22,17 +22,20 @@ npm install
 
 ### Enabling the exiftool MCP Agent for Claude Desktop
 
-To enable this exiftool MCP server as an agent in Claude Desktop, you need to update your `claude_desktop_config.json` configuration file. Add the following entry to the `"agents"` array in the config file:
+To enable this exiftool MCP server as an agent in Claude Desktop, you need to update your `claude_desktop_config.json` configuration file. Add the following entry to the `"agents"` object in the config file:
 
 ```json
-{
-  "name": "exiftool-mcp",
-  "command": "npx exiftool-mcp",
+"exiftool-mcp": {
+  "command": "npx",
+  "args": [
+    "-y",
+    "exiftool-mcp-server"
+  ],
   "description": "MCP server for retrieving EXIF metadata from images and videos using ExifTool"
 }
 ```
 
-This configuration tells Claude Desktop to run the exiftool MCP server as an agent. After updating the config file, save your changes and restart Claude Desktop to apply the new agent configuration.
+This configuration tells Claude Desktop to run the exiftool MCP server as an agent using `npx`. After updating the config file, save your changes and restart Claude Desktop to apply the new agent configuration.
 
 ## Usage
 
@@ -53,29 +56,32 @@ Supported MCP Tools:
 
 - **list-tools**: When no `tool` field is provided in the request, the server responds with a list of all supported MCP tools and their metadata.
 
-The server listens for JSON requests on stdin. Each request should be a JSON object with the following structure:
+The server listens for JSON-RPC 2.0 requests on stdin. Each request should be a JSON object with the following structure:
 
 ```json
 {
+  "jsonrpc": "2.0",
   "id": "all-or-some-request",
-  "tool": "all_or_some",
+  "method": "all_or_some",
   "params": {
     "args": ["/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
   }
 }
 ```
 
+- `jsonrpc`: Must be the string `"2.0"`.
 - `id`: A unique identifier for the request.
-- `tool`: A name of the MCP tool.
+- `method`: The name of the MCP tool to invoke.
 - `params.args`: An array of strings representing the command-line arguments to pass to `exiftool`.
 
 The server validates the `args` array to ensure all elements are strings and do not contain potentially dangerous shell metacharacters to prevent command injection.
 
-The server will respond with a JSON object containing the `id` and the EXIF data in the `result` field.
+The server will respond with a JSON-RPC 2.0 response object containing the `jsonrpc`, `id`, and the EXIF data in the `result` field.
 
 Response Example:
 ```json
 {
+  "jsonrpc": "2.0",
   "id": "location-request",
   "result": [
     {
@@ -141,26 +147,29 @@ To debug the MCP server using the "Debug MCP Server Dev Mode" configuration in V
 
 ### Example: Get the list of supported tools
 
-Send the following JSON request (note the absence of the `tool` field) to retrieve the list of tools supported by the MCP server:
+Send the following JSON-RPC 2.0 request to retrieve the list of tools supported by the MCP server:
 
 ```json
 {
+  "jsonrpc": "2.0",
   "id": "list-tools-request",
+  "method": "",
   "params": {}
 }
 ```
 
-The server will respond with a JSON object containing the `tools` metadata.
+The server will respond with a JSON-RPC 2.0 response object containing the `tools` metadata.
 
 
 ### Example: Call the "All or some" tool
 
-To request all EXIF properties or a subset, send a JSON request like this:
+To request all EXIF properties or a subset, send a JSON-RPC 2.0 request like this:
 
 ```json
 {
+  "jsonrpc": "2.0",
   "id": "all-or-some-request",
-  "tool": "all_or_some",
+  "method": "all_or_some",
   "params": {
     "args": ["/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
   }
@@ -171,12 +180,13 @@ Replace `/Users/yourusername` with your actual home directory path. If you want 
 
 #### Example: Call the "All or some" tool with specific EXIF tag patterns
 
-To request EXIF properties matching patterns like all tags containing "Date" or "Time", send a JSON request like this:
+To request EXIF properties matching patterns like all tags containing "Date" or "Time", send a JSON-RPC 2.0 request like this:
 
 ```json
 {
+  "jsonrpc": "2.0",
   "id": "all-or-some-pattern-request",
-  "tool": "all_or_some",
+  "method": "all_or_some",
   "params": {
     "args": ["*Date*", "*Time*", "/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
   }
@@ -187,12 +197,13 @@ This will instruct `exiftool` to return all tags with "Date" or "Time" in their 
 
 ### Example: Call the "Location and Timestamp" tool
 
-To request GPS and timestamp metadata, send a JSON request like this:
+To request GPS and timestamp metadata, send a JSON-RPC 2.0 request like this:
 
 ```json
 {
+  "jsonrpc": "2.0",
   "id": "location-timestamp-request",
-  "tool": "location_and_timestamp",
+  "method": "location_and_timestamp",
   "params": {
     "args": ["/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
   }

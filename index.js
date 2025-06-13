@@ -100,7 +100,7 @@ async function runExiftool(args) {
     const { stdout } = await execa('exiftool', args);
     return JSON.parse(stdout);
   } catch (err) {
-    if (err.code === 'ENOENT' || (err.message && err.message.toLowerCase().includes('exiftool'))) {
+    if (err.code === 'ENOENT' || (err.stderr && /exiftool(?!.*not found)/i.test(err.stderr) && /not found|no such file|command not found/i.test(err.stderr))) {
       throw new Error('ExifTool executable not found. Please install ExifTool from https://exiftool.org/ and ensure it is in your system PATH.');
     }
     if (err.message && err.message.startsWith('Failed to parse exiftool JSON output:')) {
@@ -217,14 +217,27 @@ function convertGpsCoordinates(exifDataArray) {
   });
 }
 
-// Main request processor
 async function processRequest(request) {
   try {
-    const { id, tool, params } = request;
+    // Validate JSON-RPC 2.0 request
+    if (request.jsonrpc !== '2.0') {
+      throw { code: -32600, message: 'Invalid JSON-RPC version, expected "2.0"' };
+    }
+    if (typeof request.method !== 'string') {
+      throw { code: -32600, message: 'Missing or invalid "method" field' };
+    }
+    if (!('id' in request)) {
+      throw { code: -32600, message: 'Missing "id" field' };
+    }
 
-    if (!tool) {
-      // If no tool specified, return list of tools for client discovery
+    const id = request.id;
+    const method = request.method;
+    const params = request.params || {};
+
+    // If no method specified, return list of tools for client discovery
+    if (method === '') {
       const response = {
+        jsonrpc: '2.0',
         id,
         result: {
           tools,
@@ -234,12 +247,8 @@ async function processRequest(request) {
       return;
     }
 
-    if (!tools[tool]) {
-      throw new Error(`Unknown tool: ${tool}`);
-    }
-
-    if (!params) {
-      throw new Error('Missing "params" object');
+    if (!tools[method]) {
+      throw { code: -32601, message: `Unknown method: ${method}` };
     }
 
     if (params.args) {
@@ -247,7 +256,7 @@ async function processRequest(request) {
     }
 
     let result;
-    switch (tool) {
+    switch (method) {
       case 'all_or_some':
         result = await handleAllOrSome(params);
         break;
@@ -261,25 +270,28 @@ async function processRequest(request) {
         result = await handleLocationAndTimestamp(params);
         break;
       default:
-        throw new Error(`Unhandled tool: ${tool}`);
+        throw { code: -32601, message: `Unhandled method: ${method}` };
     }
 
     // Convert GPS coordinates to Google Maps compatible decimal degrees
     result = convertGpsCoordinates(result);
 
     const response = {
+      jsonrpc: '2.0',
       id,
       result,
     };
     console.log(JSON.stringify(response));
   } catch (err) {
-    const error = {
-      id: null,
+    const errorResponse = {
+      jsonrpc: '2.0',
+      id: err.id || null,
       error: {
-        message: err.message,
+        code: err.code || -32000,
+        message: err.message || 'Server error',
       },
     };
-    console.log(JSON.stringify(error));
+    console.log(JSON.stringify(errorResponse));
   }
 }
 
