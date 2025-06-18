@@ -99,6 +99,37 @@ Response Example:
 }
 ```
 
+## Testing with MCP Inspector
+
+### Prerequisites
+
+Before testing with the MCP Inspector, ensure the following are installed:
+
+- [Node.js](https://nodejs.org/) (version 14 or higher recommended)
+- [ExifTool](https://exiftool.org/)
+- Project dependencies via `npm install` (includes `@modelcontextprotocol/inspector` and `ts-node`)
+
+### Testing Steps
+
+1. Open the MCP Inspector in VSCode using the "MCP Inspector with TypeScript Server" launch configuration.
+
+2. Start debugging by clicking the green play button or pressing `F5`.
+
+3. In the integrated terminal, watch for output lines containing:
+
+   ```
+   Open inspector with token pre-filled:
+      http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=...
+   ```
+
+4. Copy and open the provided URL in your web browser to access the MCP Inspector UI.
+
+5. Click the **Connect** button in the MCP Inspector UI to connect to your MCP server.
+
+6. Once connected, you can inspect and interact with your MCP server tools.
+
+> **Critical:** Finding the "Open inspector with token pre-filled" URL in the terminal output is essential to access the MCP Inspector UI and establish a connection.
+
 ## Features
 
 - MCP-compliant server interface using standard input/output.

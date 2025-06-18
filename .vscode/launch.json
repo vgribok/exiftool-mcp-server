@@ -19,6 +19,7 @@
         "@modelcontextprotocol/inspector", // Run the Inspector
         "node",                            // Run the following file using Node.js
         "--loader", "ts-node/esm",        // Use ts-node ESM loader for TypeScript runtime
+        "--no-warnings",
         "${workspaceFolder}/src/index.ts"  // Path to your server's entry point
       ],
 
