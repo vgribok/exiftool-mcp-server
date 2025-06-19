@@ -1,8 +1,7 @@
-import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { execa } from "execa";
-import { file } from "zod/v4";
 
 const gpsTags = [
   "-GPSLatitude",
@@ -27,35 +26,6 @@ const timeTags = [
   "-ContentCreateDate",
   "-ContentModifyDate",
 ] as const;
-
-function validateArgs(args: unknown): asserts args is string[] {
-  if (!Array.isArray(args)) {
-    throw new Error('"args" parameter must be an array of strings');
-  }
-  if (!args.every((arg) => typeof arg === "string")) {
-    throw new Error('"args" parameter must be an array of strings');
-  }
-  const forbiddenChars = [";", "&", "|", "`", "$", ">", "<", "\\"];
-  for (const arg of args) {
-    for (const char of forbiddenChars) {
-      if (arg.includes(char)) {
-        throw new Error(`Invalid character "${char}" detected in argument: ${arg}`);
-      }
-    }
-  }
-    if (args.length === 0) {
-    throw new Error("No arguments provided. A file path argument is required.");
-  }
-
-  // Ensure last argument is a valid file path pattern
-  const filePath = args[args.length - 1];
-  
-  if (!isValidFilePath(filePath)) {
-    throw new Error(
-      `The last argument must be a valid file path (MacOS or Windows). Received: ${filePath}`
-    );
-  }
-}
 
 function trimQuotes(str: string): string {
   let start = 0;
@@ -251,65 +221,6 @@ server.tool(
   },
   async ({ filePath }: { filePath: string }) => {
     return runToolFunction(filePath, [...gpsTags, ...timeTags], TOOL_LOCATION_AND_TIMESTAMP);
-  }
-);
-
-async function runResourceTool(
-  uri: URL,
-  params: Record<string, unknown>,
-  tags: readonly string[],
-  toolName: string,
-  includeJsonFlag = false
-) {
-  let filePath = params.filePath as string | undefined;
-  if (!filePath || !isValidFilePath(filePath)) {
-    throw new Error(`Invalid filePath parameter for resource "${toolName ?? "unknown"}".`);
-  }
-  filePath = trimQuotes(filePath);
-  const runArgs = includeJsonFlag ? ["-j", ...tags, filePath] : [...tags, filePath];
-  const result = await runExiftool(runArgs);
-  return {
-    contents: [
-      {
-        uri: uri.href,
-        type: "text",
-        text: JSON.stringify(convertGpsCoordinates(result)),
-      },
-    ],
-  };
-}
-
-server.resource(
-  TOOL_ALL_OR_SOME + "://{filePath}",
-  new ResourceTemplate(TOOL_ALL_OR_SOME + "://{filePath}", { list: undefined }),
-  async (uri, params) => {
-    const optionalExifTags = params.optionalExifTags as string[] | undefined;
-    const tags = optionalExifTags?.map(tag => (tag.startsWith("-") ? tag : `-${tag}`)) || [];
-    return runResourceTool(uri, params, tags, TOOL_ALL_OR_SOME, true);
-  }
-);
-
-server.resource(
-  TOOL_LOCATION + "://{filePath}",
-  new ResourceTemplate(TOOL_LOCATION + "://{filePath}", { list: undefined }),
-  async (uri, params) => {
-    return runResourceTool(uri, params, gpsTags, TOOL_LOCATION);
-  }
-);
-
-server.resource(
-  TOOL_TIMESTAMP + "://{filePath}",
-  new ResourceTemplate(TOOL_TIMESTAMP + "://{filePath}", { list: undefined }),
-  async (uri, params) => {
-    return runResourceTool(uri, params, timeTags, TOOL_TIMESTAMP);
-  }
-);
-
-server.resource(
-  TOOL_LOCATION_AND_TIMESTAMP + "://{filePath}",
-  new ResourceTemplate(TOOL_LOCATION_AND_TIMESTAMP + "://{filePath}", { list: undefined }),
-  async (uri, params) => {
-    return runResourceTool(uri, params, [...gpsTags, ...timeTags], TOOL_LOCATION_AND_TIMESTAMP);
   }
 );
 
