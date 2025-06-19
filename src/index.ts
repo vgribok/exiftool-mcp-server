@@ -276,28 +276,37 @@ server.tool(
 );
 
 
+async function runResourceTool(
+  uri: URL,
+  params: Record<string, unknown>,
+  tags: readonly string[],
+  toolName?: string,
+  includeJsonFlag = false
+) {
+  const filePath = params.filePath as string | undefined;
+  if (!filePath || !isValidFilePath(filePath)) {
+    throw new Error(`Invalid filePath parameter for resource "${toolName ?? "unknown"}".`);
+  }
+  const runArgs = includeJsonFlag ? ["-j", ...tags, filePath] : [...tags, filePath];
+  const result = await runExiftool(runArgs, toolName);
+  return {
+    contents: [
+      {
+        uri: uri.href,
+        type: "text",
+        text: JSON.stringify(convertGpsCoordinates(result)),
+      },
+    ],
+  };
+}
+
 server.resource(
   "all_or_some://{filePath}",
   new ResourceTemplate("all_or_some://{filePath}", { list: undefined }),
   async (uri, params) => {
-    const filePath = params.filePath as string | undefined;
     const optionalExifTags = params.optionalExifTags as string[] | undefined;
-    if (!filePath || !isValidFilePath(filePath)) {
-      throw new Error('Invalid filePath parameter for resource "all_or_some".');
-    }
     const tags = optionalExifTags?.map(tag => (tag.startsWith("-") ? tag : `-${tag}`)) || [];
-    const runArgs = ["-j", ...tags, filePath];
-
-    const result = await runExiftool(runArgs, "all_or_some");
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          type: "text",
-          text: JSON.stringify(convertGpsCoordinates(result)),
-        },
-      ],
-    };
+    return runResourceTool(uri, params, tags, "all_or_some", true);
   }
 );
 
@@ -305,21 +314,7 @@ server.resource(
   "location://{filePath}",
   new ResourceTemplate("location://{filePath}", { list: undefined }),
   async (uri, params) => {
-    const filePath = params.filePath as string | undefined;
-    if (!filePath || !isValidFilePath(filePath)) {
-      throw new Error('Invalid filePath parameter for resource "location".');
-    }
-    const runArgs = [...gpsTags, filePath];
-    const result = await runExiftool(runArgs);
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          type: "text",
-          text: JSON.stringify(convertGpsCoordinates(result)),
-        },
-      ],
-    };
+    return runResourceTool(uri, params, gpsTags);
   }
 );
 
@@ -327,21 +322,7 @@ server.resource(
   "timestamp://{filePath}",
   new ResourceTemplate("timestamp://{filePath}", { list: undefined }),
   async (uri, params) => {
-    const filePath = params.filePath as string | undefined;
-    if (!filePath || !isValidFilePath(filePath)) {
-      throw new Error('Invalid filePath parameter for resource "timestamp".');
-    }
-    const runArgs = [...timeTags, filePath];
-    const result = await runExiftool(runArgs);
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          type: "text",
-          text: JSON.stringify(convertGpsCoordinates(result)),
-        },
-      ],
-    };
+    return runResourceTool(uri, params, timeTags);
   }
 );
 
@@ -349,21 +330,7 @@ server.resource(
   "location_and_timestamp://{filePath}",
   new ResourceTemplate("location_and_timestamp://{filePath}", { list: undefined }),
   async (uri, params) => {
-    const filePath = params.filePath as string | undefined;
-    if (!filePath || !isValidFilePath(filePath)) {
-      throw new Error('Invalid filePath parameter for resource "location_and_timestamp".');
-    }
-    const runArgs = [...gpsTags, ...timeTags, filePath];
-    const result = await runExiftool(runArgs, "location_and_timestamp");
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          type: "text",
-          text: JSON.stringify(convertGpsCoordinates(result)),
-        },
-      ],
-    };
+    return runResourceTool(uri, params, [...gpsTags, ...timeTags], "location_and_timestamp");
   }
 );
 
