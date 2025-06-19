@@ -44,12 +44,62 @@ function validateArgs(args: unknown): asserts args is string[] {
   }
 }
 
-async function runExiftool(args: string[]): Promise<any[]> {
+function isValidFilePath(path: string): boolean {
+  // Basic pattern check for MacOS and Windows file paths
+  // MacOS: starts with / or ~ or relative path (./ or ../) or /Volumes/ for network shares
+  // Windows: drive letter + :\ or UNC path \\
+
+  const macosPattern = /^(\/|~\/|\.\/|\.\.\/|\/Volumes\/).+/;
+  const windowsPattern = /^(?:[a-zA-Z]:\\|\\\\)/;
+
+  return macosPattern.test(path) || windowsPattern.test(path);
+}
+
+function prepareExiftoolArgs(
+  args: string[],
+  toolName: string
+): string[] {
   if (!args.includes("-j") && !args.includes("-json")) {
     args.unshift("-j");
   }
+
+  if (args.length === 0) {
+    throw new Error("No arguments provided. A file path argument is required.");
+  }
+
+  // Ensure last argument is a valid file path pattern
+  const lastArg = args[args.length - 1];
+  if (!isValidFilePath(lastArg)) {
+    throw new Error(
+      `The last argument must be a valid file path (MacOS or Windows). Received: ${lastArg}`
+    );
+  }
+
+  // For tools other than "all_or_some", ensure no arguments other than the file path
+  if (toolName !== "all_or_some") {
+    if (args.length > 1) {
+      // Only last argument (file path) allowed
+      throw new Error(
+        `Tool "${toolName}" accepts no arguments other than the file path.`
+      );
+    }
+  }
+
+  // Ensure all arguments except last start with "-"
+  const preparedArgs = args.map((arg, idx) => {
+    if (idx === args.length - 1) {
+      return arg; // last arg is file path, leave as is
+    }
+    return arg.startsWith("-") ? arg : `-${arg}`;
+  });
+
+  return preparedArgs;
+}
+
+async function runExiftool(args: string[], toolName = "all_or_some"): Promise<any[]> {
+  const preparedArgs = prepareExiftoolArgs(args, toolName);
   try {
-    const { stdout } = await execa("exiftool", args);
+    const { stdout } = await execa("exiftool", preparedArgs);
     return JSON.parse(stdout);
   } catch (err: any) {
     if (
@@ -315,11 +365,11 @@ server.resource(
     if (args) {
       validateArgs(args);
     }
-    let runArgs = [...gpsTags, ...timeTags];
+    let runArgs: string[] = [...gpsTags, ...timeTags];
     if (args && args.length > 0) {
-      runArgs = runArgs.concat(args as (typeof gpsTags[number] | typeof timeTags[number])[]);
+      runArgs = runArgs.concat(args as string[]);
     }
-    const result = await runExiftool(runArgs);
+    const result = await runExiftool(runArgs, "location_and_timestamp");
     return {
       contents: [
         {
@@ -334,5 +384,5 @@ server.resource(
 
 const transport = new StdioServerTransport();
 server.connect(transport).then(() => {
-  console.log("MCP Server started and listening on stdin/stdout");
+  // No logging needed; Inspector will detect readiness via protocol
 });
