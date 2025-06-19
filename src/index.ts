@@ -2,6 +2,7 @@ import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { execa } from "execa";
+import { file } from "zod/v4";
 
 const gpsTags = [
   "-GPSLatitude",
@@ -47,29 +48,36 @@ function validateArgs(args: unknown): asserts args is string[] {
   }
 
   // Ensure last argument is a valid file path pattern
-  const lastArg = args[args.length - 1];
-  if (!isValidFilePath(lastArg)) {
+  const filePath = args[args.length - 1];
+  
+  if (!isValidFilePath(filePath)) {
     throw new Error(
-      `The last argument must be a valid file path (MacOS or Windows). Received: ${lastArg}`
+      `The last argument must be a valid file path (MacOS or Windows). Received: ${filePath}`
     );
   }
 }
 
-let cachedArgs: string[] | undefined = undefined;
+function trimQuotes(str: string): string {
+  let start = 0;
+  let end = str.length;
 
-function getEffectiveArgs(args?: string[]): string[] {
-  if (args && args.length > 0) {
-    validateArgs(args);
-    cachedArgs = args;
-    return args;
+  // Trim leading quotes
+  while (start < end && (str[start] === '"' || str[start] === "'")) {
+    start++;
   }
-  if (cachedArgs) {
-    return cachedArgs;
+
+  // Trim trailing quotes
+  while (end > start && (str[end - 1] === '"' || str[end - 1] === "'")) {
+    end--;
   }
-  throw new Error("No arguments provided and no cached arguments available.");
+
+  return str.substring(start, end);
 }
 
 function isValidFilePath(path: string): boolean {
+
+  path = trimQuotes(path);
+
   // Basic pattern check for MacOS and Windows file paths
   // MacOS: starts with / or ~ or relative path (./ or ../) or /Volumes/ for network shares
   // Windows: drive letter + :\ or UNC path \\
@@ -81,21 +89,10 @@ function isValidFilePath(path: string): boolean {
 }
 
 function prepareExiftoolArgs(
-  args: string[],
-  toolName: string
+  args: string[]
 ): string[] {
   if (!args.includes("-j") && !args.includes("-json")) {
     args.unshift("-j");
-  }
-
-  // For tools other than "all_or_some", ensure no arguments other than the file path
-  if (toolName !== "all_or_some") {
-    if (args.length > 1) {
-      // Only last argument (file path) allowed
-      throw new Error(
-        `Tool "${toolName}" accepts no arguments other than the file path.`
-      );
-    }
   }
 
   // Ensure all arguments except last start with "-"
@@ -109,8 +106,8 @@ function prepareExiftoolArgs(
   return preparedArgs;
 }
 
-async function runExiftool(args: string[], toolName = "all_or_some"): Promise<any[]> {
-  const preparedArgs = prepareExiftoolArgs(args, toolName);
+async function runExiftool(args: string[]): Promise<any[]> {
+  const preparedArgs = prepareExiftoolArgs(args);
   try {
     const { stdout } = await execa("exiftool", preparedArgs);
     return JSON.parse(stdout);
@@ -181,28 +178,44 @@ const server = new McpServer({
 });
 
 
+async function runToolFunction(
+  filePath: string,
+  tags: readonly string[],
+  toolName?: string
+) : Promise<{
+  content: {
+    type: "text";
+    text: string;
+  }[];
+  }>
+{
+  if (!filePath || !isValidFilePath(filePath)) {
+    throw new Error(`Invalid filePath argument for tool "${toolName ?? "unknown"}".`);
+  }
+  filePath = trimQuotes(filePath);
+
+  const runArgs = [...tags, filePath];
+  const result = await runExiftool(runArgs);
+  return {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(convertGpsCoordinates(result)),
+      },
+    ],
+  };
+}
+
 server.tool(
   "all_or_some",
   {
     filePath: z.string(),
     optionalExifTags: z.array(z.string()).optional(),
   },
-  async ({ filePath, optionalExifTags }: { filePath: string; optionalExifTags?: string[] }) => {
-    if (!isValidFilePath(filePath)) {
-      throw new Error('Invalid filePath argument for tool "all_or_some".');
-    }
+  async (params: { filePath: string; optionalExifTags?: string[] }) => {
+    const optionalExifTags = params.optionalExifTags;
     const tags = optionalExifTags?.map(tag => (tag.startsWith("-") ? tag : `-${tag}`)) || [];
-    const runArgs = [...tags, filePath];
-
-    const result = await runExiftool(runArgs, "all_or_some");
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(convertGpsCoordinates(result)),
-        },
-      ],
-    };
+    return runToolFunction(params.filePath, tags, "all_or_some");
   }
 );
 
@@ -212,20 +225,7 @@ server.tool(
     filePath: z.string(),
   },
   async ({ filePath }: { filePath: string }) => {
-    if (!isValidFilePath(filePath)) {
-      throw new Error('Invalid filePath argument for tool "location".');
-    }
-    const runArgs = [...gpsTags, filePath];
-
-    const result = await runExiftool(runArgs);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(convertGpsCoordinates(result)),
-        },
-      ],
-    };
+    return runToolFunction(filePath, gpsTags, "location");
   }
 );
 
@@ -235,20 +235,7 @@ server.tool(
     filePath: z.string(),
   },
   async ({ filePath }: { filePath: string }) => {
-    if (!isValidFilePath(filePath)) {
-      throw new Error('Invalid filePath argument for tool "timestamp".');
-    }
-    const runArgs = [...timeTags, filePath];
-
-    const result = await runExiftool(runArgs);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(convertGpsCoordinates(result)),
-        },
-      ],
-    };
+    return runToolFunction(filePath, timeTags, "timestamp");
   }
 );
 
@@ -258,37 +245,24 @@ server.tool(
     filePath: z.string(),
   },
   async ({ filePath }: { filePath: string }) => {
-    if (!isValidFilePath(filePath)) {
-      throw new Error('Invalid filePath argument for tool "location_and_timestamp".');
-    }
-    const runArgs = [...gpsTags, ...timeTags, filePath];
-
-    const result = await runExiftool(runArgs);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(convertGpsCoordinates(result)),
-        },
-      ],
-    };
+    return runToolFunction(filePath, [...gpsTags, ...timeTags], "location_and_timestamp");
   }
 );
-
 
 async function runResourceTool(
   uri: URL,
   params: Record<string, unknown>,
   tags: readonly string[],
-  toolName?: string,
+  toolName: string,
   includeJsonFlag = false
 ) {
-  const filePath = params.filePath as string | undefined;
+  let filePath = params.filePath as string | undefined;
   if (!filePath || !isValidFilePath(filePath)) {
     throw new Error(`Invalid filePath parameter for resource "${toolName ?? "unknown"}".`);
   }
+  filePath = trimQuotes(filePath);
   const runArgs = includeJsonFlag ? ["-j", ...tags, filePath] : [...tags, filePath];
-  const result = await runExiftool(runArgs, toolName);
+  const result = await runExiftool(runArgs);
   return {
     contents: [
       {
@@ -314,7 +288,7 @@ server.resource(
   "location://{filePath}",
   new ResourceTemplate("location://{filePath}", { list: undefined }),
   async (uri, params) => {
-    return runResourceTool(uri, params, gpsTags);
+    return runResourceTool(uri, params, gpsTags, "location");
   }
 );
 
@@ -322,7 +296,7 @@ server.resource(
   "timestamp://{filePath}",
   new ResourceTemplate("timestamp://{filePath}", { list: undefined }),
   async (uri, params) => {
-    return runResourceTool(uri, params, timeTags);
+    return runResourceTool(uri, params, timeTags, "timestamp");
   }
 );
 
