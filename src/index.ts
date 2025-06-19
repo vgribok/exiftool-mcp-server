@@ -187,7 +187,6 @@ server.tool(
     args: z.array(z.string()).optional(),
   },
   async ({ args }: { args?: string[] }) => {
-    
     let runArgs = getEffectiveArgs(args);
 
     runArgs = runArgs.map((prop, idx) => {
@@ -207,22 +206,17 @@ server.tool(
   }
 );
 
-
 server.tool(
   "location",
   {
-    args: z.array(z.string()).optional(),
+    filePath: z.string(),
   },
-  async ({ args }: { args?: string[] }) => {
-    
-    let runArgs = getEffectiveArgs(args);
-    // Ensure that runArgs has only one argument.
-    if (runArgs.length !== 1) {
-      throw new Error('Tool "location" accepts no arguments other than the file path.');
+  async ({ filePath }: { filePath: string }) => {
+    if (!isValidFilePath(filePath)) {
+      throw new Error('Invalid filePath argument for tool "location".');
     }
-    // Insert gpsTags before the last argument (file path)
-    runArgs = [...gpsTags, ...runArgs];    
-    
+    const runArgs = [...gpsTags, filePath];
+
     const result = await runExiftool(runArgs);
     return {
       content: [
@@ -234,21 +228,17 @@ server.tool(
     };
   }
 );
-
 
 server.tool(
   "timestamp",
   {
-    args: z.array(z.string()).optional(),
+    filePath: z.string(),
   },
-  async ({ args }: { args?: string[] }) => {
-    let runArgs = getEffectiveArgs(args);
-    // Ensure that runArgs has only one argument.
-    if (runArgs.length !== 1) {
-      throw new Error('Tool "timestamp" accepts no arguments other than the file path.');
+  async ({ filePath }: { filePath: string }) => {
+    if (!isValidFilePath(filePath)) {
+      throw new Error('Invalid filePath argument for tool "timestamp".');
     }
-    // Insert gpsTags before the last argument (file path)
-    runArgs = [...timeTags, ...runArgs]; 
+    const runArgs = [...timeTags, filePath];
 
     const result = await runExiftool(runArgs);
     return {
@@ -262,22 +252,17 @@ server.tool(
   }
 );
 
-
 server.tool(
   "location_and_timestamp",
   {
-    args: z.array(z.string()).optional(),
+    filePath: z.string(),
   },
-  async ({ args }: { args?: string[] }) => {
-
-    let runArgs = getEffectiveArgs(args);
-    // Ensure that runArgs has only one argument.
-    if (runArgs.length !== 1) {
-      throw new Error('Tool "timestamp" accepts no arguments other than the file path.');
+  async ({ filePath }: { filePath: string }) => {
+    if (!isValidFilePath(filePath)) {
+      throw new Error('Invalid filePath argument for tool "location_and_timestamp".');
     }
-    // Insert gpsTags before the last argument (file path)
-    runArgs = [...gpsTags, ...timeTags, ...runArgs]; 
-  
+    const runArgs = [...gpsTags, ...timeTags, filePath];
+
     const result = await runExiftool(runArgs);
     return {
       content: [
@@ -319,19 +304,15 @@ server.resource(
   }
 );
 
-
 server.resource(
-  "location://{args*}",
-  new ResourceTemplate("location://{args*}", { list: undefined }),
+  "location://{filePath}",
+  new ResourceTemplate("location://{filePath}", { list: undefined }),
   async (uri, params) => {
-    const args = params.args as string[] | undefined;
-    if (args) {
-      validateArgs(args);
+    const filePath = params.filePath as string | undefined;
+    if (!filePath || !isValidFilePath(filePath)) {
+      throw new Error('Invalid filePath parameter for resource "location".');
     }
-    let runArgs: string[] = [...gpsTags];
-    if (args && args.length > 0) {
-      runArgs = runArgs.concat(args as any[]);
-    }
+    const runArgs = [...gpsTags, filePath];
     const result = await runExiftool(runArgs);
     return {
       contents: [
@@ -345,19 +326,15 @@ server.resource(
   }
 );
 
-
 server.resource(
-  "timestamp://{args*}",
-  new ResourceTemplate("timestamp://{args*}", { list: undefined }),
+  "timestamp://{filePath}",
+  new ResourceTemplate("timestamp://{filePath}", { list: undefined }),
   async (uri, params) => {
-    const args = params.args as string[] | undefined;
-    if (args) {
-      validateArgs(args);
+    const filePath = params.filePath as string | undefined;
+    if (!filePath || !isValidFilePath(filePath)) {
+      throw new Error('Invalid filePath parameter for resource "timestamp".');
     }
-    let runArgs: string[] = [...timeTags];
-    if (args && args.length > 0) {
-      runArgs = (runArgs as string[]).concat(args as string[]);
-    }
+    const runArgs = [...timeTags, filePath];
     const result = await runExiftool(runArgs);
     return {
       contents: [
@@ -371,19 +348,15 @@ server.resource(
   }
 );
 
-
 server.resource(
-  "location_and_timestamp://{args*}",
-  new ResourceTemplate("location_and_timestamp://{args*}", { list: undefined }),
+  "location_and_timestamp://{filePath}",
+  new ResourceTemplate("location_and_timestamp://{filePath}", { list: undefined }),
   async (uri, params) => {
-    const args = params.args as string[] | undefined;
-    if (args) {
-      validateArgs(args);
+    const filePath = params.filePath as string | undefined;
+    if (!filePath || !isValidFilePath(filePath)) {
+      throw new Error('Invalid filePath parameter for resource "location_and_timestamp".');
     }
-    let runArgs: string[] = [...gpsTags, ...timeTags];
-    if (args && args.length > 0) {
-      runArgs = runArgs.concat(args as string[]);
-    }
+    const runArgs = [...gpsTags, ...timeTags, filePath];
     const result = await runExiftool(runArgs, "location_and_timestamp");
     return {
       contents: [
