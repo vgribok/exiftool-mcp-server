@@ -42,6 +42,31 @@ function validateArgs(args: unknown): asserts args is string[] {
       }
     }
   }
+    if (args.length === 0) {
+    throw new Error("No arguments provided. A file path argument is required.");
+  }
+
+  // Ensure last argument is a valid file path pattern
+  const lastArg = args[args.length - 1];
+  if (!isValidFilePath(lastArg)) {
+    throw new Error(
+      `The last argument must be a valid file path (MacOS or Windows). Received: ${lastArg}`
+    );
+  }
+}
+
+let cachedArgs: string[] | undefined = undefined;
+
+function getEffectiveArgs(args?: string[]): string[] {
+  if (args && args.length > 0) {
+    validateArgs(args);
+    cachedArgs = args;
+    return args;
+  }
+  if (cachedArgs) {
+    return cachedArgs;
+  }
+  throw new Error("No arguments provided and no cached arguments available.");
 }
 
 function isValidFilePath(path: string): boolean {
@@ -61,18 +86,6 @@ function prepareExiftoolArgs(
 ): string[] {
   if (!args.includes("-j") && !args.includes("-json")) {
     args.unshift("-j");
-  }
-
-  if (args.length === 0) {
-    throw new Error("No arguments provided. A file path argument is required.");
-  }
-
-  // Ensure last argument is a valid file path pattern
-  const lastArg = args[args.length - 1];
-  if (!isValidFilePath(lastArg)) {
-    throw new Error(
-      `The last argument must be a valid file path (MacOS or Windows). Received: ${lastArg}`
-    );
   }
 
   // For tools other than "all_or_some", ensure no arguments other than the file path
@@ -174,10 +187,8 @@ server.tool(
     args: z.array(z.string()).optional(),
   },
   async ({ args }: { args?: string[] }) => {
-    if (args) {
-      validateArgs(args);
-    }
-    let runArgs = args || [];
+    
+    let runArgs = getEffectiveArgs(args);
 
     runArgs = runArgs.map((prop, idx) => {
       const cleanProp = prop.startsWith("-") ? prop.slice(1) : prop;
@@ -203,13 +214,15 @@ server.tool(
     args: z.array(z.string()).optional(),
   },
   async ({ args }: { args?: string[] }) => {
-    if (args) {
-      validateArgs(args);
+    
+    let runArgs = getEffectiveArgs(args);
+    // Ensure that runArgs has only one argument.
+    if (runArgs.length !== 1) {
+      throw new Error('Tool "location" accepts no arguments other than the file path.');
     }
-    let runArgs: (typeof gpsTags[number])[] = [...gpsTags];
-    if (args && args.length > 0) {
-      runArgs = runArgs.concat(args as (typeof gpsTags[number])[]);
-    }
+    // Insert gpsTags before the last argument (file path)
+    runArgs = [...gpsTags, ...runArgs];    
+    
     const result = await runExiftool(runArgs);
     return {
       content: [
@@ -229,13 +242,14 @@ server.tool(
     args: z.array(z.string()).optional(),
   },
   async ({ args }: { args?: string[] }) => {
-    if (args) {
-      validateArgs(args);
+    let runArgs = getEffectiveArgs(args);
+    // Ensure that runArgs has only one argument.
+    if (runArgs.length !== 1) {
+      throw new Error('Tool "timestamp" accepts no arguments other than the file path.');
     }
-    let runArgs: (typeof timeTags[number])[] = [...timeTags];
-    if (args && args.length > 0) {
-      runArgs = runArgs.concat(args as (typeof timeTags[number])[]);
-    }
+    // Insert gpsTags before the last argument (file path)
+    runArgs = [...timeTags, ...runArgs]; 
+
     const result = await runExiftool(runArgs);
     return {
       content: [
@@ -255,14 +269,15 @@ server.tool(
     args: z.array(z.string()).optional(),
   },
   async ({ args }: { args?: string[] }) => {
-    if (args) {
-      validateArgs(args);
-    }
 
-    let runArgs: (typeof gpsTags[number] | typeof timeTags[number])[] = [...gpsTags, ...timeTags];
-    if (args && args.length > 0) {
-      runArgs = runArgs.concat(args as (typeof gpsTags[number] | typeof timeTags[number])[]);
+    let runArgs = getEffectiveArgs(args);
+    // Ensure that runArgs has only one argument.
+    if (runArgs.length !== 1) {
+      throw new Error('Tool "timestamp" accepts no arguments other than the file path.');
     }
+    // Insert gpsTags before the last argument (file path)
+    runArgs = [...gpsTags, ...timeTags, ...runArgs]; 
+  
     const result = await runExiftool(runArgs);
     return {
       content: [

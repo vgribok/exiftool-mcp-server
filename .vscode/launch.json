@@ -33,9 +33,9 @@
       "env": {
         "NODE_ENV": "development",
         "MCP_SERVER_REQUEST_TIMEOUT": "300000",
-        "MCP_REQUEST_TIMEOUT_RESET_ON_PROGRESS": "false"
-        // "DANGEROUSLY_OMIT_AUTH": "true",
-        // "ALLOWED_ORIGINS": "http://localhost:6274,http://127.0.0.1:6274,http://localhost:8000"
+        "MCP_REQUEST_TIMEOUT_RESET_ON_PROGRESS": "false",
+        "DANGEROUSLY_OMIT_AUTH": "true", // Use http://localhost:6274 and not 127.0.0.1 when debugging. The ALLOWED_ORIGINS setting seems to be ignored by MCP Inspector (a bug?).
+        "ALLOWED_ORIGINS": "http://localhost:6274,http://127.0.0.1:6274"
       }
     }
   ]

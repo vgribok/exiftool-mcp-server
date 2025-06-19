@@ -4,6 +4,20 @@ This is an MCP Server (an MCP protocol compatible AI agent) for retrieving EXIF 
 
 > Note: the `exiftool` copyright belongs to its author, and not to the creators of this AI agent.
 
+## Table of Contents
+
+- [Description](#description)
+- [Installation](#installation)
+- [Enabling the exiftool MCP Agent for Claude Desktop](#enabling-the-exiftool-mcp-agent-for-claude-desktop)
+- [Usage](#usage)
+- [Testing with MCP Inspector](#testing-with-mcp-inspector)
+- [Features](#features)
+- [Contribution Guidelines](#contribution-guidelines)
+- [Security Considerations](#security-considerations)
+- [License](#license)
+- [Author](#author)
+- [Debugging with "Debug MCP Server Dev Mode"](#debugging-with-debug-mcp-server-dev-mode)
+
 ## Description
 
 This project provides a command-line MCP (Model Context Protocol) server that allows clients to retrieve EXIF metadata from image and video files by safely executing the `exiftool` command with specified arguments. It listens for JSON requests on standard input and returns the EXIF data as JSON responses on standard output.
@@ -164,87 +178,16 @@ Vlad Hrybok
 
 ## Debugging with "Debug MCP Server Dev Mode"
 
-To debug the MCP server using the "Debug MCP Server Dev Mode" configuration in VSCode, follow these steps:
+To debug the MCP server using the "Debug MCP Server Dev Mode" configuration in VSCode, follow these guidelines:
 
-2. **Set breakpoints** in your `index.js` or other source files where you want to pause execution and inspect variables.
+- When disabling authentication, use `localhost` instead of `127.0.0.1`. This distinction is important and was a key troubleshooting point.
 
-3. **Open the Debug panel** by clicking the Debug icon on the left sidebar or pressing `Cmd+Shift+D` (macOS) / `Ctrl+Shift+D` (Windows/Linux).
+- Breakpoints can only be set after the MCP server is fully loaded and initialized. This occurs when the MCP Inspector connects and detects readiness via the protocol, as implemented in the `src/index.ts` file where the server connects using `server.connect(transport).then(...)`.
 
-4. **Select the "Debug MCP Server" configuration** from the dropdown at the top of the Debug panel.
+- Use the integrated terminal in VSCode to interact with your MCP server as needed (e.g., send JSON input to stdin).
 
-5. **Start debugging** by pressing the green play button or hitting `F5`.
+- To test the MCP tools, send JSON-RPC 2.0 requests to the server as described in the Usage section.
 
-6. **Use the integrated terminal** in VSCode to interact with your MCP server as needed (e.g., send JSON input to stdin).
-
-### Example: Get the list of supported tools
-
-Send the following JSON-RPC 2.0 request to retrieve the list of tools supported by the MCP server:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": "list-tools-request",
-  "method": "",
-  "params": {}
-}
-```
-
-The server will respond with a JSON-RPC 2.0 response object containing the `tools` metadata.
-
-
-### Example: Call the "All or some" tool
-
-To request all EXIF properties or a subset, send a JSON-RPC 2.0 request like this:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": "all-or-some-request",
-  "method": "all_or_some",
-  "params": {
-    "args": ["/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
-  }
-}
-```
-
-Replace `/Users/yourusername` with your actual home directory path. If you want specific properties, replace the `args` array with the list of EXIF tags you want (without the leading dash).
-
-#### Example: Call the "All or some" tool with specific EXIF tag patterns
-
-To request EXIF properties matching patterns like all tags containing "Date" or "Time", send a JSON-RPC 2.0 request like this:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": "all-or-some-pattern-request",
-  "method": "all_or_some",
-  "params": {
-    "args": ["*Date*", "*Time*", "/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
-  }
-}
-```
-
-This will instruct `exiftool` to return all tags with "Date" or "Time" in their names, along with the file specified.
-
-### Example: Call the "Location and Timestamp" tool
-
-To request GPS and timestamp metadata, send a JSON-RPC 2.0 request like this:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": "location-timestamp-request",
-  "method": "location_and_timestamp",
-  "params": {
-    "args": ["/Users/yourusername/Downloads/delme/IMG_4985.HEIC"]
-  }
-}
-```
-
-7. **When your code hits a breakpoint**, VSCode will pause execution, allowing you to inspect variables, step through code, and evaluate expressions.
-
-8. **Edit your source files** as needed. To apply changes, you will need to stop and restart the debugger since this configuration does not automatically restart on file changes.
-
-9. **Stop debugging** by clicking the red stop button or pressing `Shift+F5` when finished.
+- Remember to stop and restart the debugger to apply any source code changes, as automatic restarts are not enabled.
 
 This configuration provides a straightforward way to debug your MCP server with full breakpoint and step-through support.
