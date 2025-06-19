@@ -2,17 +2,41 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa-node",
+      // Type of debugger to use (Node.js)
+      "type": "node",
+
+      // Request type; 'launch' means start a program
       "request": "launch",
-      "name": "Debug MCP Server",
-      "program": "${workspaceFolder}/index.js",
+
+      // Name of this configuration shown in the debugger dropdown
+      "name": "MCP Inspector with TypeScript Server",
+
+      // The CLI command to run (npx)
+      "runtimeExecutable": "npx",
+
+      // Arguments passed to npx
+      "args": [
+        "@modelcontextprotocol/inspector", // Run the Inspector
+        "node",                            // Run the following file using Node.js
+        "--loader", "ts-node/esm",        // Use ts-node ESM loader for TypeScript runtime
+        "--no-warnings",
+        "${workspaceFolder}/src/index.ts"  // Path to your server's entry point
+      ],
+
+      // Set the working directory
+      "cwd": "${workspaceFolder}",
+
+      // Use the integrated terminal for input/output
       "console": "integratedTerminal",
-      "autoAttachChildProcesses": true,
+
+      // Environment variables
       "env": {
-        "NODE_OPTIONS": "--experimental-specifier-resolution=node"
-      },
-      "args": [],
-      "internalConsoleOptions": "neverOpen"
+        "NODE_ENV": "development",
+        "MCP_SERVER_REQUEST_TIMEOUT": "300000",
+        "MCP_REQUEST_TIMEOUT_RESET_ON_PROGRESS": "false",
+        "DANGEROUSLY_OMIT_AUTH": "true", // Use http://localhost:6274 and not 127.0.0.1 when debugging. The ALLOWED_ORIGINS setting seems to be ignored by MCP Inspector (a bug?).
+        "ALLOWED_ORIGINS": "http://localhost:6274,http://127.0.0.1:6274"
+      }
     }
   ]
 }

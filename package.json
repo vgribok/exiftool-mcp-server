@@ -1,11 +1,11 @@
 {
-  "name": "exiftool-mcp-server",
+  "name": "exiftool-mcp-ai-agent",
   "version": "1.0.0",
   "description": "An MCP Server for retrieving EXIF data from images (photos) and videos using ExifTool",
   "main": "index.js",
   "type": "module",
   "bin": {
-    "exiftool-mcp": "./index.js"
+    "exiftool-mcp-ai-agent": "./index.js"
   },
   "scripts": {
     "test": "echo \"No tests specified\" && exit 0"
@@ -28,6 +28,12 @@
   },
   "homepage": "https://github.com/vgribok/exiftool-mcp-server#readme",
   "dependencies": {
-    "execa": "^9.6.0"
+    "@modelcontextprotocol/sdk": "^1.12.3",
+    "execa": "^9.6.0",
+    "zod": "^3.25.64"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/inspector": "^0.14.3",
+    "ts-node": "^10.9.2"
   }
 }
