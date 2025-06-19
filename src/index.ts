@@ -172,6 +172,11 @@ function convertGpsCoordinates(exifDataArray: any[]): any[] {
   });
 }
 
+const TOOL_ALL_OR_SOME = "all_or_some";
+const TOOL_LOCATION = "location";
+const TOOL_TIMESTAMP = "timestamp";
+const TOOL_LOCATION_AND_TIMESTAMP = "location_and_timestamp";
+
 const server = new McpServer({
   name: "ExifTool MCP Server",
   version: "1.0.0",
@@ -207,7 +212,7 @@ async function runToolFunction(
 }
 
 server.tool(
-  "all_or_some",
+  TOOL_ALL_OR_SOME,
   {
     filePath: z.string(),
     optionalExifTags: z.array(z.string()).optional(),
@@ -215,37 +220,37 @@ server.tool(
   async (params: { filePath: string; optionalExifTags?: string[] }) => {
     const optionalExifTags = params.optionalExifTags;
     const tags = optionalExifTags?.map(tag => (tag.startsWith("-") ? tag : `-${tag}`)) || [];
-    return runToolFunction(params.filePath, tags, "all_or_some");
+    return runToolFunction(params.filePath, tags, TOOL_ALL_OR_SOME);
   }
 );
 
 server.tool(
-  "location",
+  TOOL_LOCATION,
   {
     filePath: z.string(),
   },
   async ({ filePath }: { filePath: string }) => {
-    return runToolFunction(filePath, gpsTags, "location");
+    return runToolFunction(filePath, gpsTags, TOOL_LOCATION);
   }
 );
 
 server.tool(
-  "timestamp",
+  TOOL_TIMESTAMP,
   {
     filePath: z.string(),
   },
   async ({ filePath }: { filePath: string }) => {
-    return runToolFunction(filePath, timeTags, "timestamp");
+    return runToolFunction(filePath, timeTags, TOOL_TIMESTAMP);
   }
 );
 
 server.tool(
-  "location_and_timestamp",
+  TOOL_LOCATION_AND_TIMESTAMP,
   {
     filePath: z.string(),
   },
   async ({ filePath }: { filePath: string }) => {
-    return runToolFunction(filePath, [...gpsTags, ...timeTags], "location_and_timestamp");
+    return runToolFunction(filePath, [...gpsTags, ...timeTags], TOOL_LOCATION_AND_TIMESTAMP);
   }
 );
 
@@ -275,36 +280,36 @@ async function runResourceTool(
 }
 
 server.resource(
-  "all_or_some://{filePath}",
-  new ResourceTemplate("all_or_some://{filePath}", { list: undefined }),
+  TOOL_ALL_OR_SOME + "://{filePath}",
+  new ResourceTemplate(TOOL_ALL_OR_SOME + "://{filePath}", { list: undefined }),
   async (uri, params) => {
     const optionalExifTags = params.optionalExifTags as string[] | undefined;
     const tags = optionalExifTags?.map(tag => (tag.startsWith("-") ? tag : `-${tag}`)) || [];
-    return runResourceTool(uri, params, tags, "all_or_some", true);
+    return runResourceTool(uri, params, tags, TOOL_ALL_OR_SOME, true);
   }
 );
 
 server.resource(
-  "location://{filePath}",
-  new ResourceTemplate("location://{filePath}", { list: undefined }),
+  TOOL_LOCATION + "://{filePath}",
+  new ResourceTemplate(TOOL_LOCATION + "://{filePath}", { list: undefined }),
   async (uri, params) => {
-    return runResourceTool(uri, params, gpsTags, "location");
+    return runResourceTool(uri, params, gpsTags, TOOL_LOCATION);
   }
 );
 
 server.resource(
-  "timestamp://{filePath}",
-  new ResourceTemplate("timestamp://{filePath}", { list: undefined }),
+  TOOL_TIMESTAMP + "://{filePath}",
+  new ResourceTemplate(TOOL_TIMESTAMP + "://{filePath}", { list: undefined }),
   async (uri, params) => {
-    return runResourceTool(uri, params, timeTags, "timestamp");
+    return runResourceTool(uri, params, timeTags, TOOL_TIMESTAMP);
   }
 );
 
 server.resource(
-  "location_and_timestamp://{filePath}",
-  new ResourceTemplate("location_and_timestamp://{filePath}", { list: undefined }),
+  TOOL_LOCATION_AND_TIMESTAMP + "://{filePath}",
+  new ResourceTemplate(TOOL_LOCATION_AND_TIMESTAMP + "://{filePath}", { list: undefined }),
   async (uri, params) => {
-    return runResourceTool(uri, params, [...gpsTags, ...timeTags], "location_and_timestamp");
+    return runResourceTool(uri, params, [...gpsTags, ...timeTags], TOOL_LOCATION_AND_TIMESTAMP);
   }
 );
 
