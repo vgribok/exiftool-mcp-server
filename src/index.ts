@@ -27,6 +27,8 @@ const timeTags = [
   "-ContentModifyDate",
 ] as const;
 
+type ExiftoolOutput = Array<Record<string, unknown>>;
+
 function trimQuotes(str: string): string {
   let start = 0;
   let end = str.length;
@@ -76,26 +78,30 @@ function prepareExiftoolArgs(
   return preparedArgs;
 }
 
-async function runExiftool(args: string[]): Promise<any[]> {
+async function runExiftool(args: string[]): Promise<ExiftoolOutput> {
   const preparedArgs = prepareExiftoolArgs(args);
   try {
     const { stdout } = await execa("exiftool", preparedArgs);
-    return JSON.parse(stdout);
-  } catch (err: any) {
-    if (
-      err.code === "ENOENT" ||
-      (err.stderr &&
-        /exiftool(?!.*not found)/i.test(err.stderr) &&
-        /not found|no such file|command not found/i.test(err.stderr))
-    ) {
-      throw new Error(
-        "ExifTool executable not found. Please install ExifTool from https://exiftool.org/ and ensure it is in your system PATH."
-      );
+    return JSON.parse(stdout) as ExiftoolOutput;
+  } catch (err: unknown) {
+    if (typeof err === "object" && err !== null) {
+      const errorObj = err as { code?: string; stderr?: string; message?: string };
+      if (
+        errorObj.code === "ENOENT" ||
+        (errorObj.stderr &&
+          /exiftool(?!.*not found)/i.test(errorObj.stderr) &&
+          /not found|no such file|command not found/i.test(errorObj.stderr))
+      ) {
+        throw new Error(
+          "ExifTool executable not found. Please install ExifTool from https://exiftool.org/ and ensure it is in your system PATH."
+        );
+      }
+      if (errorObj.message && errorObj.message.startsWith("Failed to parse exiftool JSON output:")) {
+        throw err;
+      }
+      throw new Error("Failed to run exiftool: " + (errorObj.message ?? "Unknown error"));
     }
-    if (err.message && err.message.startsWith("Failed to parse exiftool JSON output:")) {
-      throw err;
-    }
-    throw new Error("Failed to run exiftool: " + err.message);
+    throw new Error("Failed to run exiftool: Unknown error");
   }
 }
 
@@ -118,23 +124,25 @@ function parseDMS(dmsString: string | undefined): number | null {
   return decimal;
 }
 
-function convertGpsCoordinates(exifDataArray: any[]): any[] {
+function convertGpsCoordinates(exifDataArray: ExiftoolOutput): ExiftoolOutput {
   if (!Array.isArray(exifDataArray)) return exifDataArray;
 
   return exifDataArray.map((item) => {
     const newItem = { ...item };
 
-    if (newItem.GPSLatitude) {
-      const latDecimal = parseDMS(newItem.GPSLatitude);
+    const gpsLatitude = newItem["GPSLatitude"];
+    if (typeof gpsLatitude === "string") {
+      const latDecimal = parseDMS(gpsLatitude);
       if (latDecimal !== null) {
-        newItem.GPSLatitudeGoogleMapsCompatible = latDecimal;
+        newItem["GPSLatitudeGoogleMapsCompatible"] = latDecimal;
       }
     }
 
-    if (newItem.GPSLongitude) {
-      const lonDecimal = parseDMS(newItem.GPSLongitude);
+    const gpsLongitude = newItem["GPSLongitude"];
+    if (typeof gpsLongitude === "string") {
+      const lonDecimal = parseDMS(gpsLongitude);
       if (lonDecimal !== null) {
-        newItem.GPSLongitudeGoogleMapsCompatible = lonDecimal;
+        newItem["GPSLongitudeGoogleMapsCompatible"] = lonDecimal;
       }
     }
 
@@ -152,18 +160,25 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
+interface ToolAllOrSomeParams {
+  filePath: string;
+  optionalExifTags?: string[];
+}
+
+interface ToolFilePathParam {
+  filePath: string;
+}
 
 async function runToolFunction(
   filePath: string,
   tags: readonly string[],
   toolName?: string
-) : Promise<{
+): Promise<{
   content: {
     type: "text";
     text: string;
   }[];
-  }>
-{
+}> {
   if (!filePath || !isValidFilePath(filePath)) {
     throw new Error(`Invalid filePath argument for tool "${toolName ?? "unknown"}".`);
   }
@@ -187,7 +202,7 @@ server.tool(
     filePath: z.string(),
     optionalExifTags: z.array(z.string()).optional(),
   },
-  async (params: { filePath: string; optionalExifTags?: string[] }) => {
+  async (params: ToolAllOrSomeParams) => {
     const optionalExifTags = params.optionalExifTags;
     const tags = optionalExifTags?.map(tag => (tag.startsWith("-") ? tag : `-${tag}`)) || [];
     return runToolFunction(params.filePath, tags, TOOL_ALL_OR_SOME);
@@ -199,7 +214,7 @@ server.tool(
   {
     filePath: z.string(),
   },
-  async ({ filePath }: { filePath: string }) => {
+  async ({ filePath }: ToolFilePathParam) => {
     return runToolFunction(filePath, gpsTags, TOOL_LOCATION);
   }
 );
@@ -209,7 +224,7 @@ server.tool(
   {
     filePath: z.string(),
   },
-  async ({ filePath }: { filePath: string }) => {
+  async ({ filePath }: ToolFilePathParam) => {
     return runToolFunction(filePath, timeTags, TOOL_TIMESTAMP);
   }
 );
@@ -219,7 +234,7 @@ server.tool(
   {
     filePath: z.string(),
   },
-  async ({ filePath }: { filePath: string }) => {
+  async ({ filePath }: ToolFilePathParam) => {
     return runToolFunction(filePath, [...gpsTags, ...timeTags], TOOL_LOCATION_AND_TIMESTAMP);
   }
 );
