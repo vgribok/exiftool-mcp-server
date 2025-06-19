@@ -184,17 +184,17 @@ const server = new McpServer({
 server.tool(
   "all_or_some",
   {
-    args: z.array(z.string()).optional(),
+    filePath: z.string(),
+    optionalExifTags: z.array(z.string()).optional(),
   },
-  async ({ args }: { args?: string[] }) => {
-    let runArgs = getEffectiveArgs(args);
+  async ({ filePath, optionalExifTags }: { filePath: string; optionalExifTags?: string[] }) => {
+    if (!isValidFilePath(filePath)) {
+      throw new Error('Invalid filePath argument for tool "all_or_some".');
+    }
+    const tags = optionalExifTags?.map(tag => (tag.startsWith("-") ? tag : `-${tag}`)) || [];
+    const runArgs = [...tags, filePath];
 
-    runArgs = runArgs.map((prop, idx) => {
-      const cleanProp = prop.startsWith("-") ? prop.slice(1) : prop;
-      return idx < runArgs.length - 1 ? `-${cleanProp}` : prop;
-    });
-
-    const result = await runExiftool(runArgs);
+    const result = await runExiftool(runArgs, "all_or_some");
     return {
       content: [
         {
@@ -277,21 +277,18 @@ server.tool(
 
 
 server.resource(
-  "all_or_some://{args*}",
-  new ResourceTemplate("all_or_some://{args*}", { list: undefined }),
+  "all_or_some://{filePath}",
+  new ResourceTemplate("all_or_some://{filePath}", { list: undefined }),
   async (uri, params) => {
-    const args = params.args as string[] | undefined;
-    if (args) {
-      validateArgs(args);
+    const filePath = params.filePath as string | undefined;
+    const optionalExifTags = params.optionalExifTags as string[] | undefined;
+    if (!filePath || !isValidFilePath(filePath)) {
+      throw new Error('Invalid filePath parameter for resource "all_or_some".');
     }
-    let runArgs = args || [];
+    const tags = optionalExifTags?.map(tag => (tag.startsWith("-") ? tag : `-${tag}`)) || [];
+    const runArgs = ["-j", ...tags, filePath];
 
-    runArgs = runArgs.map((prop, idx) => {
-      const cleanProp = prop.startsWith("-") ? prop.slice(1) : prop;
-      return idx < runArgs.length - 1 ? `-${cleanProp}` : prop;
-    });
-
-    const result = await runExiftool(runArgs);
+    const result = await runExiftool(runArgs, "all_or_some");
     return {
       contents: [
         {
