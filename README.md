@@ -48,15 +48,23 @@ The server listens for JSON-RPC 2.0 requests on stdin.
 
 ## Testing with Claude Desktop 
 
-### When Using Npm.org Package
+### When Using Npmjs.org Package
 
 Use the following entry in the `claude_desktop_config.json`
 
-TBD
+```json
+"Exiftool-agent": {
+  "command": "npx",
+  "args": [
+    "-y",
+    "exiftool-mcp-ai-agent"
+  ]
+}
+```
 
 ### When Code Cloned from GitHub Locally
 
-Use the following development-time - in case you have cloned the  entry in Claude's `claude_desktop_config.json` (with appropriate repo path change):
+Use the following development-time entry, in case you have cloned the source code, in Claude's `claude_desktop_config.json` (with appropriate repo path change):
 
 ```json
 "Exiftool-agent": {
