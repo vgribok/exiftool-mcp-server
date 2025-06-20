@@ -4,6 +4,23 @@ This is an MCP Server (an MCP protocol compatible AI agent) for retrieving EXIF 
 
 > Note: the `exiftool` copyright belongs to its author, and not to the creators of this AI agent.
 
+## Table of Contents
+
+- [Description](#description)
+- [Dependencies](#dependencies)
+- [Supported MCP Tools](#supported-mcp-tools)
+- [Development and Testing from Source](#development-and-testing-from-source)
+  - [Testing with Claude Desktop](#testing-with-claude-desktop)
+    - [When Using Npm.org Package](#when-using-npmorg-package)
+    - [When Code Cloned from GitHub Locally](#when-code-cloned-from-github-locally)
+  - [Testing Locally With MCP Inspector](#testing-locally-with-mcp-inspector)
+    - [Prerequisites](#prerequisites)
+    - [Testing Locally With MCP Inspector](#testing-locally-with-mcp-inspector-1)
+- [Contribution Guidelines](#contribution-guidelines)
+- [Security Considerations](#security-considerations)
+- [License](#license)
+- [Author](#author)
+
 ## Description
 
 This project provides a command-line/stdio transport MCP (Model Context Protocol) server that allows clients to retrieve EXIF metadata from image and video files by safely executing the `exiftool` command with specified arguments. It listens for JSON requests on standard input and returns the EXIF data as JSON responses on standard output.
@@ -29,9 +46,17 @@ The server listens for JSON-RPC 2.0 requests on stdin.
 
 # Development and Testing from Source
 
-## Testing with Claude Desktop, 
+## Testing with Claude Desktop 
 
-Use the following development-time entry in Claude's `claude_desktop_config.json` (with appropriate repo path change):
+### When Using Npm.org Package
+
+Use the following entry in the `claude_desktop_config.json`
+
+TBD
+
+### When Code Cloned from GitHub Locally
+
+Use the following development-time - in case you have cloned the  entry in Claude's `claude_desktop_config.json` (with appropriate repo path change):
 
 ```json
 "Exiftool-agent": {
