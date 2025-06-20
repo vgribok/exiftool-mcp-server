@@ -5,11 +5,15 @@
   "main": "index.js",
   "type": "module",
   "bin": {
-    "exiftool-mcp-ai-agent": "./index.js"
+    "exiftool-mcp-ai-agent": "./dist/index.js"
   },
   "scripts": {
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "echo \"No tests specified\" && exit 0",
+    "build": "tsc"
   },
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "mcp-server",
     "exiftool",
