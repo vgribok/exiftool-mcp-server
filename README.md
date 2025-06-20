@@ -33,13 +33,13 @@ This project provides a command-line/stdio transport MCP (Model Context Protocol
 
 ## Supported MCP Tools:
 
-- **EXIF_all_or_some**: Return all or some EXIF properties. If args are not supplied, return all. The `args` parameter is an optional array of strings representing EXIF property names to return.
+- **EXIF_all_or_some**: Return all or some EXIF properties. If `optionalExifTags` are not supplied, return all. The `optionalExifTags` parameter is an optional array of strings representing EXIF property names to return.
 
-- **EXIF_location**: Return GPS-related EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+- **EXIF_location**: Return GPS-related EXIF metadata. 
 
-- **EXIF_timestamp**: Return timestamp-related EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+- **EXIF_timestamp**: Return timestamp-related EXIF metadata. 
 
-- **EXIF_location_and_timestamp**: Return both GPS and timestamp EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+- **EXIF_location_and_timestamp**: Return both GPS and timestamp EXIF metadata.
 
 The server listens for JSON-RPC 2.0 requests on stdin. 
 
@@ -133,8 +133,7 @@ Please ensure your code follows existing style and includes appropriate error ha
 
 ## Security Considerations
 
-- The server strictly validates the `args` parameter to be an array of strings.
-- It disallows shell metacharacters such as `;`, `&`, `|`, `` ` ``, `$`, `>`, `<`, and `\` to prevent command injection attacks.
+- The server disallows shell metacharacters such as `;`, `&`, `|`, `` ` ``, `$`, `>`, `<`, and `\` to prevent command injection attacks.
 - Always ensure that the input to the server is from trusted sources.
 
 ## License

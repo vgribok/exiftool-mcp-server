@@ -29,12 +29,29 @@ const timeTags = [
 ] as const;
 
 
+
 const TOOL_ALL_OR_SOME = "EXIF_all_or_some";
 const TOOL_LOCATION = "EXIF_location";
 const TOOL_TIMESTAMP = "EXIF_timestamp";
 const TOOL_LOCATION_AND_TIMESTAMP = "EXIF_location_and_timestamp";
 
 type ExiftoolOutput = Array<Record<string, unknown>>;
+
+/**
+ * Throws an error if the argument contains characters that could be used for
+ * command injection via piping, redirection, or chaining commands.
+ * @param arg The argument string to validate.
+ */
+function ensureSafeArgument(arg: string): void {
+  // Characters that can be used for command injection
+  const unsafeChars = /[|&;<>$`'"\\\n\r]/;
+  if (unsafeChars.test(arg)) {
+    throw new Error(
+      `Unsafe characters detected in argument: ${arg}. ` +
+      `Arguments must not contain characters that can be used for command injection.`
+    );
+  }
+}
 
 async function runToolFunction(
   filePath: string,
@@ -52,6 +69,14 @@ async function runToolFunction(
 
   // Normalize path before using it
   filePath = PathUtils.normalizePath(filePath);
+
+  // Ensure the filePath argument is safe
+  ensureSafeArgument(filePath);
+
+  // Ensure all tag arguments are safe
+  for (const tag of tags) {
+    ensureSafeArgument(tag);
+  }
 
   const runArgs = [...tags, filePath];
   return runExiftool(runArgs).then(result => ({
@@ -239,8 +264,6 @@ class PathUtils {
     return macosPattern.test(path) || windowsPattern.test(path);
   }
 }
-
-/* Removed duplicate runToolFunction implementation */
 
 server.tool(
   TOOL_ALL_OR_SOME,

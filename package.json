@@ -1,6 +1,6 @@
 {
   "name": "exiftool-mcp-ai-agent",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "An MCP Server for retrieving EXIF data from images (photos) and videos using ExifTool",
   "main": "dist/index.js",
   "type": "module",
