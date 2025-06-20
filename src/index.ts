@@ -28,37 +28,40 @@ const timeTags = [
   "-ContentModifyDate",
 ] as const;
 
+
+const TOOL_ALL_OR_SOME = "EXIF_all_or_some";
+const TOOL_LOCATION = "EXIF_location";
+const TOOL_TIMESTAMP = "EXIF_timestamp";
+const TOOL_LOCATION_AND_TIMESTAMP = "EXIF_location_and_timestamp";
+
 type ExiftoolOutput = Array<Record<string, unknown>>;
 
-function trimQuotes(str: string): string {
-  let start = 0;
-  let end = str.length;
-
-  // Trim leading quotes
-  while (start < end && (str[start] === '"' || str[start] === "'")) {
-    start++;
+async function runToolFunction(
+  filePath: string,
+  tags: readonly string[],
+  toolName?: string
+): Promise<{
+  content: {
+    type: "text";
+    text: string;
+  }[];
+}> {
+  if (!filePath || !PathUtils.isValidFilePath(filePath)) {
+    throw new Error(`Invalid filePath argument for tool "${toolName ?? "unknown"}".`);
   }
 
-  // Trim trailing quotes
-  while (end > start && (str[end - 1] === '"' || str[end - 1] === "'")) {
-    end--;
-  }
+  // Normalize path before using it
+  filePath = PathUtils.normalizePath(filePath);
 
-  return str.substring(start, end);
-}
-
-function isValidFilePath(path: string): boolean {
-
-  path = trimQuotes(path);
-
-  // Basic pattern check for MacOS and Windows file paths
-  // MacOS: starts with / or ~ or relative path (./ or ../) or /Volumes/ for network shares
-  // Windows: drive letter + :\ or UNC path \\
-
-  const macosPattern = /^(\/|~\/|\.\/|\.\.\/|\/Volumes\/).+/;
-  const windowsPattern = /^(?:[a-zA-Z]:\\|\\\\)/;
-
-  return macosPattern.test(path) || windowsPattern.test(path);
+  const runArgs = [...tags, filePath];
+  return runExiftool(runArgs).then(result => ({
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(convertGpsCoordinates(result)),
+      },
+    ],
+  }));
 }
 
 function prepareExiftoolArgs(
@@ -85,14 +88,19 @@ async function runExiftool(args: string[]): Promise<ExiftoolOutput> {
     const { stdout } = await execa("exiftool", preparedArgs);
     return JSON.parse(stdout) as ExiftoolOutput;
   } catch (err: unknown) {
+    handleExiftoolRunError(err);
+    // The above function always throws, but TypeScript doesn't know that.
+    // Add a throw here to satisfy the return type.
+    throw err;
+  }
+
+  function handleExiftoolRunError(err: unknown) {
     if (typeof err === "object" && err !== null) {
-      const errorObj = err as { code?: string; stderr?: string; message?: string };
-      if (
-        errorObj.code === "ENOENT" ||
+      const errorObj = err as { code?: string; stderr?: string; message?: string; };
+      if (errorObj.code === "ENOENT" ||
         (errorObj.stderr &&
           /exiftool(?!.*not found)/i.test(errorObj.stderr) &&
-          /not found|no such file|command not found/i.test(errorObj.stderr))
-      ) {
+          /not found|no such file|command not found/i.test(errorObj.stderr))) {
         throw new Error(
           "ExifTool executable not found. Please install ExifTool from https://exiftool.org/ and ensure it is in your system PATH."
         );
@@ -151,11 +159,6 @@ function convertGpsCoordinates(exifDataArray: ExiftoolOutput): ExiftoolOutput {
   });
 }
 
-const TOOL_ALL_OR_SOME = "all_or_some";
-const TOOL_LOCATION = "location";
-const TOOL_TIMESTAMP = "timestamp";
-const TOOL_LOCATION_AND_TIMESTAMP = "location_and_timestamp";
-
 const server = new McpServer({
   name: "ExifTool MCP Server",
   version: "1.0.0",
@@ -170,32 +173,74 @@ interface ToolFilePathParam {
   filePath: string;
 }
 
-async function runToolFunction(
-  filePath: string,
-  tags: readonly string[],
-  toolName?: string
-): Promise<{
-  content: {
-    type: "text";
-    text: string;
-  }[];
-}> {
-  if (!filePath || !isValidFilePath(filePath)) {
-    throw new Error(`Invalid filePath argument for tool "${toolName ?? "unknown"}".`);
-  }
-  filePath = trimQuotes(filePath);
+class PathUtils {
 
-  const runArgs = [...tags, filePath];
-  const result = await runExiftool(runArgs);
-  return {
-    content: [
-      {
-        type: "text",
-        text: JSON.stringify(convertGpsCoordinates(result)),
-      },
-    ],
-  };
+  static normalizePath(path: string): string {
+    path = this._trimQuotes(path);
+    return this._normalizePathInternal(path);
+  }
+
+  static _normalizePathInternal(path: string): string {
+    if (!path) return path;
+
+    // Check if path starts with ~ or ~/
+    if (path.startsWith("~")) {
+      // Get home directory from environment variables
+      const homeDir = process.env.HOME || process.env.USERPROFILE || "";
+
+      if (!homeDir) {
+        // If home directory is not found, return path as is
+        return path;
+      }
+
+      if (path === "~") {
+        return homeDir;
+      } else if (path.startsWith("~/") || path.startsWith("~\\")) {
+        // Replace ~ with home directory and keep the rest of the path
+        return homeDir + path.slice(1);
+      }
+    }
+
+    return path;
+  }
+
+  static _trimQuotes(str: string): string {
+
+    if(!str) return str;
+
+    str = str.trim();
+
+    let start = 0;
+    let end = str.length;
+
+    // Trim leading quotes
+    while (start < end && (str[start] === '"' || str[start] === "'")) {
+      start++;
+    }
+
+    // Trim trailing quotes
+    while (end > start && (str[end - 1] === '"' || str[end - 1] === "'")) {
+      end--;
+    }
+
+    return str.substring(start, end);
+  }
+
+  static isValidFilePath(path: string): boolean {
+    path = PathUtils.normalizePath(path);
+
+    // Basic pattern check for MacOS and Windows file paths
+    // MacOS: starts with / or ~ or relative path (./ or ../) or /Volumes/ for network shares
+    // Windows: drive letter + :\ or UNC path \\
+
+    const macosPattern = /^(\/|~\/|\.\/|\.\.\/|\/Volumes\/).+/;
+    const windowsPattern = /^(?:[a-zA-Z]:\\|\\\\)/;
+
+    return macosPattern.test(path) || windowsPattern.test(path);
+  }
 }
+
+/* Removed duplicate runToolFunction implementation */
 
 server.tool(
   TOOL_ALL_OR_SOME,

@@ -33,13 +33,13 @@ This project provides a command-line/stdio transport MCP (Model Context Protocol
 
 ## Supported MCP Tools:
 
-- **all_or_some**: Return all or some EXIF properties. If args are not supplied, return all. The `args` parameter is an optional array of strings representing EXIF property names to return.
+- **EXIF_all_or_some**: Return all or some EXIF properties. If args are not supplied, return all. The `args` parameter is an optional array of strings representing EXIF property names to return.
 
-- **location**: Return GPS-related EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+- **EXIF_location**: Return GPS-related EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
 
-- **timestamp**: Return timestamp-related EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+- **EXIF_timestamp**: Return timestamp-related EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
 
-- **location_and_timestamp**: Return both GPS and timestamp EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
+- **EXIF_location_and_timestamp**: Return both GPS and timestamp EXIF metadata. The `args` parameter is an optional array of additional arguments for exiftool.
 
 The server listens for JSON-RPC 2.0 requests on stdin. 
 
@@ -50,7 +50,7 @@ The server listens for JSON-RPC 2.0 requests on stdin.
 
 ### When Using Npmjs.org Package
 
-Use the following entry in the `claude_desktop_config.json`
+Use the following entry in the `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ```json
 "Exiftool-agent": {
@@ -64,18 +64,19 @@ Use the following entry in the `claude_desktop_config.json`
 
 ### When Code Cloned from GitHub Locally
 
-Use the following development-time entry, in case you have cloned the source code, in Claude's `claude_desktop_config.json` (with appropriate repo path change):
+Use the following development-time entry, in case you have cloned the source code, in Claude's `~/Library/Application Support/Claude/claude_desktop_config.json` (with appropriate repo path change):
 
 ```json
 "Exiftool-agent": {
   "command": "sh",
   "args": [
     "-c",
-    "cd /Users/username/Projects/exiftool-mcp-server && npx node --loader ts-node/esm --no-warnings src/index.ts"
+    "cd ~/Projects/AI/exiftool-mcp-server && npx node --loader ts-node/esm --no-warnings src/index.ts"
   ]
 }
 ```
 
+### Claude Desktop Integration View
 ![Claude Desktop with Exit tool agent](docs/images/claude-desktop.png)
 
 ## Testing Locally With MCP Inspector
