@@ -80,7 +80,7 @@ Before testing with the MCP Inspector, ensure the following are installed:
 - [ExifTool](https://exiftool.org/)
 
 
-### Testing Locally With MCP Inspector
+### Testing With MCP Inspector
 
 1. Clone the github repo at https://github.com/vgribok/exiftool-mcp-server.git.
 
