@@ -9,9 +9,9 @@ This is an MCP Server (an MCP protocol compatible AI agent) for retrieving EXIF 
 - [Description](#description)
 - [Dependencies](#dependencies)
 - [Supported MCP Tools](#supported-mcp-tools)
-- [Development and Testing from Source](#development-and-testing-from-source)
+- [Usage](#usage)
   - [Testing with Claude Desktop](#testing-with-claude-desktop)
-    - [When Using Npm.org Package](#when-using-npmorg-package)
+    - [When Using Npmjs.org Package](#when-using-npmjsorg-package)
     - [When Code Cloned from GitHub Locally](#when-code-cloned-from-github-locally)
   - [Testing Locally With MCP Inspector](#testing-locally-with-mcp-inspector)
     - [Prerequisites](#prerequisites)
@@ -44,7 +44,7 @@ This project provides a command-line/stdio transport MCP (Model Context Protocol
 The server listens for JSON-RPC 2.0 requests on stdin. 
 
 
-# Development and Testing from Source
+# Usage
 
 ## Testing with Claude Desktop 
 
