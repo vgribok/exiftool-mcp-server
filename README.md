@@ -15,7 +15,7 @@ This is an MCP Server (an MCP protocol compatible AI agent) for retrieving EXIF 
     - [When Code Cloned from GitHub Locally](#when-code-cloned-from-github-locally)
   - [Testing Locally With MCP Inspector](#testing-locally-with-mcp-inspector)
     - [Prerequisites](#prerequisites)
-    - [Testing Locally With MCP Inspector](#testing-locally-with-mcp-inspector-1)
+    - [Testing With MCP Inspector](#testing-with-mcp-inspector)
 - [Contribution Guidelines](#contribution-guidelines)
 - [Security Considerations](#security-considerations)
 - [License](#license)
